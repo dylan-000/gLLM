@@ -15,7 +15,7 @@ async def on_chat_resume(thread):
     pass
 
 
-# TODO: Implment real authentication callback
+# TODO: Implment real authentication callback.. AuthHandler
 @cl.password_auth_callback
 def auth_callback(username: str, password: str):
     if (username, password) == ("admin", "admin"):
