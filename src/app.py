@@ -33,7 +33,7 @@ def on_start():
         [{"content": f'{SYSTEM_PROMPT}', "role": "system"}],
     )
 
-# TODO: Add the image from the chainlit "Message" object to the proper input type that the OpenAI API accepts
+# TODO: Could we make this faster? I believe that passing the URL from S3 would make this more efficient (less data in the payload)
 @cl.on_message
 async def on_message(cl_msg: cl.Message):
     message = {
