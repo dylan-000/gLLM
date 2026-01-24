@@ -7,7 +7,7 @@ class PromptManager:
     and potentially parameterized prompts in the future.
     '''
     scriptDir = os.path.dirname(os.path.abspath(__file__))
-    promptsDir = os.path.join(scriptDir, "../../Prompts")
+    promptsDir = os.path.join(scriptDir, "../../prompts")
 
     # TODO: Write Unit Test for this
     def getSystem(self) -> str:
