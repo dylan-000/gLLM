@@ -11,4 +11,5 @@ dependencies = [
     "fastapi[standard]>=0.121.3",
     "langchain-milvus>=0.3.0",
     "openai>=2.7.1",
+    "prisma>=0.15.0",
 ]

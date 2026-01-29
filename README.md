@@ -40,3 +40,4 @@
   ```
 5. You can now run `npx prisma migrate deploy` to apply the schema to your postgres db.
 6. Run `npx prisma studio` and navigate to the prisma studio interface to verify that the schema has been applied.
+7. For the FastApi services, you'll need the Prisma Client so that they can interface with the ORM and acccess the database. To do this, navigate to the `/Data` dir, and run `npx prisma generate`. This will create a folder in `/src/` that contains the Python Prisma Client code. Any time you create a migration to the database with Prisma, you'll need to also regenerate the client so that it has the updated schema.
