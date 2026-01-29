@@ -1,11 +1,11 @@
 from openai import AsyncOpenAI
 import base64
 import chainlit as cl
-from PromptManager import PromptManager
+from Services.PromptService import PromptService
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
-pm = PromptManager()
+pm = PromptService()
 
 SYSTEM_PROMPT = pm.getSystem()
 settings = {"model": "HuggingFaceTB/SmolVLM-256M-Instruct", "temperature": 0.7}

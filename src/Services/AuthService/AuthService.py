@@ -1,14 +1,14 @@
 import hashlib
 import os
 
-class AuthHandler:
+class AuthService:
     '''
     Manages Authentication by providing methods to authenticate user login credentials.
     '''
     
     def __new__(cls):
         if not hasattr(cls, 'instance'):
-            cls.instance = super(AuthHandler, cls).__new__(cls)
+            cls.instance = super(AuthService, cls).__new__(cls)
         return cls.instance
     
     def __init__(self):

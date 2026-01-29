@@ -1,6 +1,6 @@
 import os
 
-class PromptManager:
+class PromptService:
     '''
     Provides an interface to the prompts stored in the repository.
     Includes methods to return static prompts such as the system prompt, 
