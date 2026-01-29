@@ -8,7 +8,7 @@ cl.instrument_openai()
 pm = PromptManager()
 
 SYSTEM_PROMPT = pm.getSystem()
-settings = {"model": "gemma-3-12b-it", "temperature": 0.7}
+settings = {"model": "HuggingFaceTB/SmolVLM-256M-Instruct", "temperature": 0.7}
 
 @cl.on_chat_resume
 async def on_chat_resume(thread):
