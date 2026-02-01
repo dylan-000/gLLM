@@ -2,6 +2,8 @@ from openai import AsyncOpenAI
 import base64
 import chainlit as cl
 from Services.PromptService import PromptService
+from chainlit.types import ThreadDict
+import  json
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
@@ -11,8 +13,20 @@ SYSTEM_PROMPT = pm.getSystem()
 settings = {"model": "HuggingFaceTB/SmolVLM-256M-Instruct", "temperature": 0.7}
 
 @cl.on_chat_resume
-async def on_chat_resume(thread):
-    pass
+async def on_chat_resume(thread: ThreadDict):
+    cl.user_session.set("message_history", [])
+
+    for message in thread["steps"]:
+        if message["type"] == "user_message":
+            cl.user_session.get("message_history").append(
+                {"role": "user", "content": message["output"]}
+            )
+        elif message["type"] == "assistant_message":
+            cl.user_session.get("message_history").append(
+                {"role": "assistant", "content": message["output"]}
+            )
+    #print(cl.user_session.get("message_history"))
+    print(thread['steps'])
 
 
 # TODO: Implment real authentication callback.. AuthHandler
