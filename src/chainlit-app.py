@@ -25,8 +25,6 @@ async def on_chat_resume(thread: ThreadDict):
             cl.user_session.get("message_history").append(
                 {"role": "assistant", "content": message["output"]}
             )
-    #print(cl.user_session.get("message_history"))
-    print(thread['steps'])
 
 
 # TODO: Implment real authentication callback.. AuthHandler
@@ -78,4 +76,4 @@ async def on_message(cl_msg: cl.Message):
             await msg.stream_token(token)
 
     message_history.append({"role": "assistant", "content": msg.content})
-    await msg.update()
+    await msg.send()
