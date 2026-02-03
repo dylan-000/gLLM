@@ -1,5 +1,7 @@
 import hashlib
 import os
+from sqlalchemy.orm import Session
+from ...Data import User
 
 class AuthService:
     '''
@@ -14,7 +16,7 @@ class AuthService:
     def __init__(self):
         pass
     
-    def Authenticate(self, username: str, password: str) -> bool:
+    def Authenticate(self, identifier: str, password: str) -> bool:
         '''
         Parameters
         ----------
@@ -26,9 +28,6 @@ class AuthService:
         bool
             True if user is valid. False otherwise.
         '''
-        # This method presumes that the password is stored in the db a specific way
-        # it would find the password associated with the username, strip the salt from it
-        # then, hash the incoming password and compare it with the one in the db
-        
-        # soo... how do we get a "user" in the database to begin with....
-        
+
+    def GetUsers(self, db: Session, identifier: str, password: str ) -> list[User] | None:
+        return db.query(User)

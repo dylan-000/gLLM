@@ -13,11 +13,14 @@ from sqlalchemy import (
     Enum as SAEnum,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
+from database import Base
 
-Base = declarative_base()
+'''
+Be very careful when modifying the schema. Chainlit's backend expects some columns and their respective names to be present
+when it interacts with the database. So, basically don't rename anything to something else.
+'''
 
-# 1. Define the Enum
 class StepType(enum.Enum):
     assistant_message = "assistant_message"
     embedding = "embedding"
@@ -30,8 +33,6 @@ class StepType(enum.Enum):
     undefined = "undefined"
     user_message = "user_message"
 
-# 2. Define the Models
-
 class User(Base):
     __tablename__ = "User"
 
@@ -41,7 +42,7 @@ class User(Base):
     metadata_ = Column("metadata", JSONB, nullable=False) # 'metadata' is reserved in SQLAlchemy Base
     identifier = Column(String, nullable=False, unique=True)
 
-    # Relations
+    
     threads = relationship("Thread", back_populates="user")
 
     __table_args__ = (
@@ -61,7 +62,6 @@ class Thread(Base):
     tags = Column(ARRAY(String), server_default=text("ARRAY[]::text[]"), nullable=False)
     userId = Column(UUID(as_uuid=True), ForeignKey("User.id"), nullable=True)
 
-    # Relations
     user = relationship("User", back_populates="threads")
     elements = relationship("Element", back_populates="thread")
     steps = relationship("Step", back_populates="thread")
@@ -92,12 +92,10 @@ class Step(Base):
     startTime = Column(DateTime(timezone=True), nullable=False)
     endTime = Column(DateTime(timezone=True), nullable=False)
 
-    # Relations
     elements = relationship("Element", back_populates="step")
     feedback = relationship("Feedback", back_populates="step")
     thread = relationship("Thread", back_populates="steps")
     
-    # Self-referential relationship (Parent/Child)
     parent = relationship("Step", remote_side=[id], back_populates="children")
     children = relationship("Step", back_populates="parent", cascade="all, delete-orphan")
 
@@ -136,7 +134,6 @@ class Element(Base):
     page = Column(Integer, nullable=True)
     props = Column(JSONB, nullable=True)
 
-    # Relations
     step = relationship("Step", back_populates="elements")
     thread = relationship("Thread", back_populates="elements")
 
@@ -159,7 +156,6 @@ class Feedback(Base):
     value = Column(Float, nullable=False)
     comment = Column(String, nullable=True)
 
-    # Relations
     step = relationship("Step", back_populates="feedback")
 
     __table_args__ = (
