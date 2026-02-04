@@ -7,14 +7,20 @@ import { UserRole } from "../models/User";
 // Temporary Role
 const CURRENT_USER_ROLE: UserRole = UserRole.ADMIN; 
 
+const CHAINLIT_URL = import.meta.env.VITE_CHAINLIT_URL
+
 export default function MainMenu() {
   const navigate = useNavigate();
   const role: UserRole = CURRENT_USER_ROLE;
 
   const handleNavigation = (path: string, external = false) => {
-    if (external) window.open(path, "_blank");
-    else if (path.startsWith("/chat")) window.location.href = path;
-    else navigate(path);
+    if (external) {
+      window.open(path, "_blank");
+    } else if (path === "/chat") {
+      window.open(CHAINLIT_URL, "_blank");
+    } else {
+      navigate(path);
+    }
   };
 
   return (
