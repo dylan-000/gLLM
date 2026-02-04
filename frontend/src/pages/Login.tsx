@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -8,6 +8,7 @@ import { Logo } from "@/components/ui/Logo"
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
@@ -56,7 +57,7 @@ export default function Login() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" onClick={() => navigate("/main-menu")}>
                 Sign in
               </Button>
 
