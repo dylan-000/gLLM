@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Settings, Shield, Terminal, LogOut, Menu, LayoutDashboard } from "lucide-react";
+import { MessageSquare, Settings, Shield, Terminal, LogOut, Menu, LayoutDashboard, Moon, Sun } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { UserRole } from "../models/User";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Test Data
 const CURRENT_USER = {
@@ -11,7 +12,7 @@ const CURRENT_USER = {
   email: "n.englert@psu.edu",
   firstName: "Nathan",
   lastName: "Englert",
-  role: UserRole.REGUSER // Test Role
+  role: UserRole.ADMIN // Test Role
 };
 
 const CHAINLIT_URL = import.meta.env.VITE_CHAINLIT_URL || "http://localhost:8000";
@@ -19,6 +20,7 @@ const CHAINLIT_URL = import.meta.env.VITE_CHAINLIT_URL || "http://localhost:8000
 export default function MainMenu() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { theme, toggleTheme } = useTheme(); 
 
   const handleNavigation = (path: string, external = false) => {
     if (external) window.open(path, "_blank");
@@ -67,6 +69,20 @@ export default function MainMenu() {
         <div className="p-4 border-t border-border">
           <Button 
             variant="ghost" 
+            className={`w-full justify-start ${!sidebarOpen && 'px-2 justify-center'}`}
+            onClick={toggleTheme}
+          >
+            {theme === 'dark' ? (
+                <Sun className="h-4 w-4" />
+            ) : (
+                <Moon className="h-4 w-4" />
+            )}
+            {sidebarOpen && <span className="ml-2">
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </span>}
+          </Button>
+          <Button 
+            variant="ghost" 
             className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${!sidebarOpen && 'px-2 justify-center'}`}
             onClick={() => navigate("/login")}
           >
@@ -82,8 +98,7 @@ export default function MainMenu() {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-            <p className="text-muted-foreground mt-1">Welcome back, {CURRENT_USER.firstName}. Here is what's happening today.</p>
+            <h1 className="text-3xl font-bold tracking-tight">gLLM Dashboard</h1>
           </div>
           <div className="flex items-center gap-3">
              <span className="text-xs font-mono bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full uppercase">
@@ -91,6 +106,9 @@ export default function MainMenu() {
              </span>
              <span className="text-xs font-mono bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
                vLLM: Active
+             </span>
+             <span className="text-xs font-mono bg-tertiary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
+               UnSloth: Inactive
              </span>
           </div>
         </div>
