@@ -33,6 +33,12 @@ class StepType(enum.Enum):
     undefined = "undefined"
     user_message = "user_message"
 
+class UserRole(enum.Enum):
+    admin = "admin"
+    fine_tuner = "fine_tuner"
+    normal = "normal"
+    unauthorized = "unauthorized"
+
 class User(Base):
     __tablename__ = "User"
 
@@ -40,13 +46,16 @@ class User(Base):
     createdAt = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updatedAt = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     metadata_ = Column("metadata", JSONB, nullable=False) # 'metadata' is reserved in SQLAlchemy Base
-    identifier = Column(String, nullable=False, unique=True)
-
+    identifier = Column(String, nullable=False, unique=True) # Treat this as the username. Chainlit needs this and this must not be modified.
+    
+    password = Column(String, nullable=False)
+    role = Column(SAEnum(UserRole, name="UserRole"), nullable=False)
     
     threads = relationship("Thread", back_populates="user")
 
     __table_args__ = (
         Index("ix_User_identifier", "identifier"),
+        Index("ix_User_role", "role")
     )
 
 
