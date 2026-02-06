@@ -18,7 +18,7 @@ class AuthService:
     def __init__(self):
         pass
     
-    def Authenticate(self, identifier: str, password: str) -> bool:
+    def authenticate(self, identifier: str, password: str) -> bool:
         '''
         Parameters
         ----------
@@ -30,6 +30,12 @@ class AuthService:
         bool
             True if user is valid. False otherwise.
         '''
+    
+    def signupUser(self, db: Session, user: User):
+        '''
+        Creates a new unauthorized user in the database that an admin can then approve.
+        '''
+        pass
 
     def GetUsers(self, db: Session) -> list[User] | None:
         print(db)
@@ -37,3 +43,10 @@ class AuthService:
             res = session.execute(select(User))
             users = [user for user in res.scalars()]
             return users
+        
+    def hashPassword(password: str) -> str:
+        return ''
+    
+    '''
+    TODO: Alter user entity so that it has a password, email ... etc attributes so that we can authenticate them and create them in the db for admins to approve.
+    '''
