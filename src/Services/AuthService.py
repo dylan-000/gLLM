@@ -3,6 +3,7 @@ import os
 from sqlalchemy.orm import Session
 from ..Data import User
 from ..Data.database import SessionLocal, engine
+from sqlalchemy import select
 
 class AuthService:
     '''
@@ -31,4 +32,8 @@ class AuthService:
         '''
 
     def GetUsers(self, db: Session) -> list[User] | None:
-        return db.query(User).all()
+        print(db)
+        with db as session:
+            res = session.execute(select(User))
+            users = [user for user in res.scalars()]
+            return users

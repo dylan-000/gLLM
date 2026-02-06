@@ -21,16 +21,16 @@ AuthRouter = APIRouter(
 
 auth_service = AuthService()
 
-@AuthRouter.get("/users/", tags=["users"])
+@AuthRouter.get("/users/")
 async def read_users(db: Session = Depends(get_db)):
-    auth_service.GetUsers(db=db)
+    return auth_service.GetUsers(db=db)
 
 
-@AuthRouter.get("/users/me", tags=["users"])
+@AuthRouter.get("/users/me")
 async def read_user_me():
     return {"username": "fakecurrentuser"}
 
 
-@AuthRouter.get("/users/{username}", tags=["users"])
+@AuthRouter.get("/users/{username}")
 async def read_user(username: str):
     return {"username": username}
