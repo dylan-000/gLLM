@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
-from database import Base
+from .database import Base
 
 '''
 Be very careful when modifying the schema. Chainlit's backend expects some columns and their respective names to be present

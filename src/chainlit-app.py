@@ -10,7 +10,7 @@ cl.instrument_openai()
 pm = PromptService()
 
 SYSTEM_PROMPT = pm.getSystem()
-settings = {"model": "HuggingFaceTB/SmolVLM-256M-Instruct", "temperature": 0.7}
+settings = {"model": "HuggingFaceTB/SmolVLM-256M-Instruct", "temperature": 0.7} # Kimi-VL-A3B-Thinking
 
 @cl.on_chat_resume
 async def on_chat_resume(thread: ThreadDict):
