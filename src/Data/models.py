@@ -51,6 +51,10 @@ class User(Base):
     password = Column(String, nullable=False)
     role = Column(SAEnum(UserRole, name="UserRole"), nullable=False)
     
+    firstname = Column(String, nullable=True)
+    lastname = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    
     threads = relationship("Thread", back_populates="user")
 
     __table_args__ = (
