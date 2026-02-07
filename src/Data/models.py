@@ -14,9 +14,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
-from .database import Base
+from .database import Base # just remove the '.' when you're running an 'alembic upgrade head' to apply a migration. Idk. Put it back when you're done :)
 
 '''
+This is the database schema definition. All of these classes are database models and are NOT the same as the DTOs also defined here.
 Be very careful when modifying the schema. Chainlit's backend expects some columns and their respective names to be present
 when it interacts with the database. So, basically don't rename anything to something else.
 '''

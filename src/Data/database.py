@@ -11,6 +11,9 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
+    '''
+    Returns SQLAlchemy ORM Session with Database.
+    '''
     db = SessionLocal()
     try:
         yield db

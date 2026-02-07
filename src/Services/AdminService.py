@@ -9,6 +9,7 @@ class AdminService:
     Service class that provides priveleged admin utilities.
     '''
 
+    # TODO: Revise this to use the DTO
     def get_users(self, db: Session) -> list[User]:
         '''
         Returns all users.
