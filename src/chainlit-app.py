@@ -1,16 +1,17 @@
 from openai import AsyncOpenAI
 import base64
 import chainlit as cl
-from Services.PromptService import PromptService
+from services.promptservice import PromptService
 from chainlit.types import ThreadDict
-import  json
+import json
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
 pm = PromptService()
 
-SYSTEM_PROMPT = pm.getSystem()
-settings = {"model": "Kimi-VL-A3B-Thinking", "temperature": 0.7} # Kimi-VL-A3B-Thinking
+SYSTEM_PROMPT = pm.get_system()
+settings = {"model": "Kimi-VL-A3B-Thinking", "temperature": 0.7}  # Kimi-VL-A3B-Thinking
+
 
 @cl.on_chat_resume
 async def on_chat_resume(thread: ThreadDict):
@@ -36,37 +37,37 @@ def auth_callback(username: str, password: str):
         )
     else:
         return None
-    
-    
+
+
 @cl.on_chat_start
 def on_start():
     cl.user_session.set(
         "message_history",
-        [{"content": f'{SYSTEM_PROMPT}', "role": "system"}],
+        [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
     )
 
-# TODO: Could we make this faster? I believe that passing the URL from S3 would make this more efficient (less data in the payload)
+
 @cl.on_message
 async def on_message(cl_msg: cl.Message):
-    message = {
-        "role": "user",
-        "content" : [
-            {"type": "text", "text": cl_msg.content}
-        ]
-    }
-    
+    message = {"role": "user", "content": [{"type": "text", "text": cl_msg.content}]}
+
     IMAGES = [file for file in cl_msg.elements if "image" in file.mime]
-    
+
     for image in IMAGES:
         with open(image.path, "rb") as image_file:
-            b64_image = base64.b64encode(image_file.read()).decode("utf-8")  
-        message["content"].append({"type": "image_url", "image_url": { "url" : f"data:image/png;base64,{b64_image}" } },)
-        
+            b64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        message["content"].append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{b64_image}"},
+            },
+        )
+
     message_history = cl.user_session.get("message_history")
     message_history.append(message)
 
     msg = cl.Message(content="")
-    
+
     stream = await client.chat.completions.create(
         messages=message_history, stream=True, **settings
     )

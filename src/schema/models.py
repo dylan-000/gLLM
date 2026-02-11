@@ -14,13 +14,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
-from .database import Base # just remove the '.' when you're running an 'alembic upgrade head' to apply a migration. Idk. Put it back when you're done :)
+from ..db.database import (
+    Base,
+)  # just remove the '.' when you're running an 'alembic upgrade head' to apply a migration. Idk. Put it back when you're done :)
 
-'''
+"""
 This is the database schema definition. All of these classes are database models and are NOT the same as the DTOs also defined here.
 Be very careful when modifying the schema. Chainlit's backend expects some columns and their respective names to be present
 when it interacts with the database. So, basically don't rename anything to something else.
-'''
+"""
+
 
 class StepType(enum.Enum):
     assistant_message = "assistant_message"
@@ -34,42 +37,66 @@ class StepType(enum.Enum):
     undefined = "undefined"
     user_message = "user_message"
 
+
 class UserRole(enum.Enum):
     admin = "admin"
     fine_tuner = "fine_tuner"
     normal = "normal"
     unauthorized = "unauthorized"
 
+
 class User(Base):
     __tablename__ = "User"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    createdAt = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updatedAt = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    metadata_ = Column("metadata", JSONB, nullable=False) # 'metadata' is reserved in SQLAlchemy Base
-    identifier = Column(String, nullable=False, unique=True) # Treat this as the username. Chainlit needs this and this must not be modified.
-    
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    createdAt = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updatedAt = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    metadata_ = Column(
+        "metadata", JSONB, nullable=False
+    )  # 'metadata' is reserved in SQLAlchemy Base
+    identifier = Column(
+        String, nullable=False, unique=True
+    )  # Treat this as the username. Chainlit needs this and this must not be modified.
+
     password = Column(String, nullable=False)
     role = Column(SAEnum(UserRole, name="UserRole"), nullable=False)
-    
+
     firstname = Column(String, nullable=True)
     lastname = Column(String, nullable=True)
     email = Column(String, nullable=True)
-    
+
     threads = relationship("Thread", back_populates="user")
 
     __table_args__ = (
         Index("ix_User_identifier", "identifier"),
-        Index("ix_User_role", "role")
+        Index("ix_User_role", "role"),
     )
 
 
 class Thread(Base):
     __tablename__ = "Thread"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    createdAt = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updatedAt = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    createdAt = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updatedAt = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
     deletedAt = Column(DateTime(timezone=True), nullable=True)
     name = Column(String, nullable=True)
     metadata_ = Column("metadata", JSONB, nullable=False)
@@ -89,12 +116,25 @@ class Thread(Base):
 class Step(Base):
     __tablename__ = "Step"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    createdAt = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updatedAt = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    parentId = Column(UUID(as_uuid=True), ForeignKey("Step.id", ondelete="CASCADE"), nullable=True)
-    threadId = Column(UUID(as_uuid=True), ForeignKey("Thread.id", ondelete="CASCADE"), nullable=True)
-    
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    createdAt = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updatedAt = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    parentId = Column(
+        UUID(as_uuid=True), ForeignKey("Step.id", ondelete="CASCADE"), nullable=True
+    )
+    threadId = Column(
+        UUID(as_uuid=True), ForeignKey("Thread.id", ondelete="CASCADE"), nullable=True
+    )
+
     input = Column(String, nullable=True)
     metadata_ = Column("metadata", JSONB, nullable=False)
     name = Column(String, nullable=True)
@@ -102,16 +142,18 @@ class Step(Base):
     type = Column(SAEnum(StepType, name="StepType"), nullable=False)
     showInput = Column(String, server_default="json", nullable=True)
     isError = Column(Boolean, server_default="false", nullable=True)
-    
+
     startTime = Column(DateTime(timezone=True), nullable=False)
     endTime = Column(DateTime(timezone=True), nullable=False)
 
     elements = relationship("Element", back_populates="step")
     feedback = relationship("Feedback", back_populates="step")
     thread = relationship("Thread", back_populates="steps")
-    
+
     parent = relationship("Step", remote_side=[id], back_populates="children")
-    children = relationship("Step", back_populates="parent", cascade="all, delete-orphan")
+    children = relationship(
+        "Step", back_populates="parent", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("ix_Step_createdAt", "createdAt"),
@@ -128,19 +170,32 @@ class Step(Base):
 class Element(Base):
     __tablename__ = "Element"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    createdAt = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updatedAt = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
-    threadId = Column(UUID(as_uuid=True), ForeignKey("Thread.id", ondelete="CASCADE"), nullable=True)
-    stepId = Column(UUID(as_uuid=True), ForeignKey("Step.id", ondelete="CASCADE"), nullable=False)
-    
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    createdAt = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updatedAt = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    threadId = Column(
+        UUID(as_uuid=True), ForeignKey("Thread.id", ondelete="CASCADE"), nullable=True
+    )
+    stepId = Column(
+        UUID(as_uuid=True), ForeignKey("Step.id", ondelete="CASCADE"), nullable=False
+    )
+
     metadata_ = Column("metadata", JSONB, nullable=False)
     mime = Column(String, nullable=True)
     name = Column(String, nullable=False)
     objectKey = Column(String, nullable=True)
     url = Column(String, nullable=True)
-    
+
     chainlitKey = Column(String, nullable=True)
     display = Column(String, nullable=True)
     size = Column(String, nullable=True)
@@ -160,12 +215,21 @@ class Element(Base):
 class Feedback(Base):
     __tablename__ = "Feedback"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    createdAt = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updatedAt = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    createdAt = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updatedAt = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
     stepId = Column(UUID(as_uuid=True), ForeignKey("Step.id"), nullable=True)
-    
+
     name = Column(String, nullable=False)
     value = Column(Float, nullable=False)
     comment = Column(String, nullable=True)
