@@ -1,9 +1,0 @@
-# Env vars.
-.env
-
-# Where we store PostgreSQL data.
-.data
-
-# Node modules.
-node_modules/
-.vscode

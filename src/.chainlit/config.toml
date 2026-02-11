@@ -43,14 +43,20 @@ reaction_on_message_received = false
 
 [UI]
 name = "gLLM"
-github = "https://github.com/dylan-000/gLLM"
+github = 'https://github.com/dylan-000/gLLM'
 
-default_theme = "dark"
+default_theme = "light"
 default_sidebar_state = "open"
-cot = "full"
+cot = 'hidden'
 alert_style = "classic"
 logo_file_url = ""
 default_avatar_file_url = ""
+
+[[UI.header_links]]
+    name = ""
+    display_name = "Back"
+    icon_url = "http://localhost:8001/gllm/logo?theme=dark&"
+    url = "https://github.com/dylan-000/gLLM"
 
 [meta]
 generated_by = "2.9.2"
