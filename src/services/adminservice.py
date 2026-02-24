@@ -23,3 +23,8 @@ class AdminService:
         stmt = select(User)
         result = db.execute(stmt)
         return result.scalars().all()
+
+    def get_user_from_identifier(self, identifier: str, db: Session) -> User:
+        stmt = select(User).where(User.identifier == identifier).limit(1)
+        result = db.execute(stmt)
+        return result.scalar()

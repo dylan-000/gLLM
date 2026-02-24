@@ -2,9 +2,26 @@ import hashlib
 import os
 from sqlalchemy.orm import Session
 from ..models.user import UserCreate
+from ..models.auth import Token, TokenData
 from ..schema.models import User, UserRole
 from sqlalchemy import select
-import scrypt
+from fastapi import HTTPException, status, Depends
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+from pwdlib import PasswordHash
+from typing import Annotated
+import jwt
+from jwt.exceptions import InvalidTokenError
+from .adminservice import AdminService
+from ..core.core import oauth2_scheme
+
+load_dotenv()
+SECRET_KEY = os.environ.get("AUTH_SECRET")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"))
+ALGORITHM = os.environ.get("ALGORITHM")
+password_hash = PasswordHash.recommended()
+DUMMY_HASH = password_hash.hash("dummypassword")
+admin_service = AdminService()
 
 
 class AuthService:
@@ -28,7 +45,7 @@ class AuthService:
             raise ValueError("User already exists with this username.")
 
         user_data = user_in.model_dump(exclude={"password"})
-        hashed_password = hash_password(user_in.password)
+        hashed_password = get_password_hash(user_in.password)
         db_user = User(
             **user_data, password=hashed_password, role=UserRole.unauthorized
         )
@@ -40,57 +57,97 @@ class AuthService:
         except Exception as e:
             raise Exception(f"Error Adding User to Database: {str(e)}")
 
-    def login_user(self, db: Session, identifier: str, password: str):
-        pass
+    def login_user(self, db: Session, identifier: str, password: str) -> Token:
+        user = authenticate_user(db=db, identifier=identifier, password=password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.identifier}, expires_delta=access_token_expires
+        )
+        return Token(access_token=access_token, token_type="bearer")
 
 
-def hash_password(password, maxtime=0.5, datalength=64):
-    """Create a secure password hash using scrypt encryption.
-
-    Args:
-        password: The password to hash
-        maxtime: Maximum time to spend hashing in seconds
-        datalength: Length of the random data to encrypt
-
-    Returns:
-        bytes: An encrypted hash suitable for storage and later verification
-    """
-    return scrypt.encrypt(os.urandom(datalength), password, maxtime=maxtime)
+def get_password_hash(password):
+    return password_hash.hash(password)
 
 
-def verify_password(hashed_password, guessed_password, maxtime=0.5):
-    """Verify a password against its hash with better error handling.
+def verify_password(plain_password, hashed_password):
+    return password_hash.verify(plain_password, hashed_password)
 
-    Args:
-        hashed_password: The stored password hash from hash_password()
-        guessed_password: The password to verify
-        maxtime: Maximum time to spend in verification
 
-    Returns:
-        tuple: (is_valid, status_code) where:
-            - is_valid: True if password is correct, False otherwise
-            - status_code: One of "correct", "wrong_password", "time_limit_exceeded",
-            "memory_limit_exceeded", or "error"
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
-    Raises:
-        scrypt.error: Only raised for resource limit errors, which you may want to
-                    handle by retrying with higher limits or force=True
-    """
+
+def authenticate_user(db: Session, identifier: str, password: str):
+    user = admin_service.get_user_from_identifier(db=db, identifier=identifier)
+    if not user:
+        verify_password(plain_password=password, hashed_password=DUMMY_HASH)
+        return False
+    if not verify_password(plain_password=password, hashed_password=user.password):
+        return False
+    return user
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        scrypt.decrypt(hashed_password, guessed_password, maxtime, encoding=None)
-        return True, "correct"
-    except scrypt.error as e:
-        # Check the specific error message to differentiate between causes
-        error_message = str(e)
-        if error_message == "password is incorrect":
-            # Wrong password was provided
-            return False, "wrong_password"
-        elif error_message == "decrypting file would take too long":
-            # Time limit exceeded
-            raise  # Re-raise so caller can handle appropriately
-        elif error_message == "decrypting file would take too much memory":
-            # Memory limit exceeded
-            raise  # Re-raise so caller can handle appropriately
-        else:
-            # Some other error occurred (corrupted data, etc.)
-            return False, "error"
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+        user = admin_service.get_user_from_identifier(
+            identifier=token_data.username, db=db
+        )
+    except InvalidTokenError:
+        raise credentials_exception
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error.",
+        )
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    if current_user.role == UserRole.unauthorized:
+        raise HTTPException(status_code=401, detail="Unauthorized user.")
+    return current_user
+
+
+def require_roles(*allowed_roles: UserRole):
+    """
+    Factory that returns a dependency enforcing role-based access.
+    Usage: Depends(require_roles(UserRole.admin, UserRole.fine_tuner))
+    """
+
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {[r.value for r in allowed_roles]}",
+            )
+        return current_user
+
+    return role_checker

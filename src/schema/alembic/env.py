@@ -25,7 +25,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[3])) # don't touch this
+
+sys.path.append(str(Path(__file__).resolve().parents[3]))  # don't touch this
 from src.schema.models import Base
 
 target_metadata = [Base.metadata]
