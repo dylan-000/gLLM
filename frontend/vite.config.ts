@@ -10,5 +10,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      '/gllm': {
+        target: 'http://localhost:8001',
+        ws: true,
+      },
+      '/assets': {
+        target: 'http://localhost:8001',
+      },
+      '/chainlit-auth': {
+        target: 'http://localhost:8001',
+      }
+    },
+  },
 })
 

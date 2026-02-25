@@ -33,11 +33,7 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-# -rA: Show a summary of All tests (passed/failed) at the end
-# -vv: Very Verbose (shows exact values compared in assertions)
-# --tb=short: Traceback Short (only shows the line that failed, not the whole stack)
 addopts = "-rA -vv --tb=short"
-
 testpaths = ["../tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"

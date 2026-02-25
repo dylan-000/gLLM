@@ -15,17 +15,16 @@ const CURRENT_USER = {
   role: UserRole.ADMIN // Test Role
 };
 
-const CHAINLIT_URL = import.meta.env.VITE_CHAINLIT_URL || "http://localhost:8000";
-
 export default function MainMenu() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { theme, toggleTheme } = useTheme(); 
 
-  const handleNavigation = (path: string, external = false) => {
-    if (external) window.open(path, "_blank");
-    else if (path === "/chat") window.open(CHAINLIT_URL, "_blank");
-    else navigate(path);
+  const handleNavigation = (path: string) => {
+    if (path === "/chat") 
+      window.open("/gllm", "_blank");
+    else 
+      navigate(path);
   };
 
   return (
@@ -61,7 +60,7 @@ export default function MainMenu() {
           )}
           
           {(CURRENT_USER.role === UserRole.ADMIN || CURRENT_USER.role === UserRole.FINETUNER) && (
-             <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai", true)} />
+             <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
           )}
         </nav>
 
@@ -139,7 +138,7 @@ export default function MainMenu() {
                    title="Fine-Tune Models"
                    desc="Access Jupyter interface for model training."
                    icon={<Terminal className="h-6 w-6 text-secondary" />}
-                   onClick={() => handleNavigation("https://unsloth.ai", true)}
+                   onClick={() => handleNavigation("https://unsloth.ai")}
                  />
                )}
                
