@@ -4,6 +4,7 @@ import Signup from "./pages/Signup"
 import MainMenu from "./pages/MainMenu";
 import AdminPanel from "./pages/AdminPanel";
 import RetiredAccess from "./pages/RetiredAccess";
+import RequestFinetune from "./pages/RequestFineTune";
 import { UserRole } from "./models/User";
 
 // Test User
@@ -43,6 +44,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/request-access" element={<RequestFinetune />} />
         
         <Route
           path="/admin"

@@ -12,7 +12,7 @@ const CURRENT_USER = {
   email: "n.englert@psu.edu",
   firstName: "Nathan",
   lastName: "Englert",
-  role: UserRole.ADMIN // Test Role
+  role: UserRole.ADMIN
 };
 
 export default function MainMenu() {
@@ -147,7 +147,7 @@ export default function MainMenu() {
                    title="Request Access"
                    desc="Submit request for fine-tuning privileges."
                    icon={<Settings className="h-6 w-6 text-muted-foreground" />}
-                   onClick={() => console.log("Request")}
+                   onClick={() => handleNavigation("/request-access")}
                  />
                )}
             </div>
