@@ -14,62 +14,56 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from .adminservice import AdminService
 from ..core.core import oauth2_scheme
+from ..core.config import Settings
 
-load_dotenv()
-SECRET_KEY = os.environ.get("AUTH_SECRET")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"))
-ALGORITHM = os.environ.get("ALGORITHM")
+SECRET_KEY = Settings().AUTH_SECRET
+ACCESS_TOKEN_EXPIRE_MINUTES = Settings().ACCESS_TOKEN_EXPIRE_MINUTES
+ALGORITHM = Settings().HASH_ALGORITHM
 password_hash = PasswordHash.recommended()
 DUMMY_HASH = password_hash.hash("dummypassword")
 admin_service = AdminService()
 
 
-class AuthService:
+def signup_user(db: Session, user_in: UserCreate):
     """
-    Manages Authentication by providing methods to authenticate user login credentials.
+    Creates new user in the database and defaults their role to 'unauthorized'.
+
+    :param db: database session
+    :type db: Session
+    :param user_in: user to signup
+    :type user_in: UserCreate
     """
+    existing_user = db.scalar(
+        select(User).where(User.identifier == user_in.identifier).limit(1)
+    )
+    if existing_user != None:
+        raise ValueError("User already exists with this username.")
 
-    def signup_user(self, db: Session, user_in: UserCreate):
-        """
-        Creates new user in the database and defaults their role to 'unauthorized'.
+    user_data = user_in.model_dump(exclude={"password"})
+    hashed_password = get_password_hash(user_in.password)
+    db_user = User(**user_data, password=hashed_password, role=UserRole.unauthorized)
+    try:
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)  # Refreshes DB-generated fields like id and createdAt
+        return db_user
+    except Exception as e:
+        raise Exception(f"Error Adding User to Database: {str(e)}")
 
-        :param db: database session
-        :type db: Session
-        :param user_in: user to signup
-        :type user_in: UserCreate
-        """
-        existing_user = db.scalar(
-            select(User).where(User.identifier == user_in.identifier).limit(1)
+
+def login_user(db: Session, identifier: str, password: str) -> Token:
+    user = authenticate_user(db=db, identifier=identifier, password=password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        if existing_user != None:
-            raise ValueError("User already exists with this username.")
-
-        user_data = user_in.model_dump(exclude={"password"})
-        hashed_password = get_password_hash(user_in.password)
-        db_user = User(
-            **user_data, password=hashed_password, role=UserRole.unauthorized
-        )
-        try:
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)  # Refreshes DB-generated fields like id and createdAt
-            return db_user
-        except Exception as e:
-            raise Exception(f"Error Adding User to Database: {str(e)}")
-
-    def login_user(self, db: Session, identifier: str, password: str) -> Token:
-        user = authenticate_user(db=db, identifier=identifier, password=password)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.identifier}, expires_delta=access_token_expires
-        )
-        return Token(access_token=access_token, token_type="bearer")
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.identifier}, expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
 
 
 def get_password_hash(password):

@@ -3861,6 +3861,7 @@ dependencies = [
     { name = "openai" },
     { name = "psycopg2-binary" },
     { name = "pwdlib", extra = ["argon2"] },
+    { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "scrypt" },
 ]
@@ -3891,6 +3892,7 @@ requires-dist = [
     { name = "openai", specifier = ">=2.7.1" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pwdlib", extras = ["argon2"], specifier = ">=0.3.0" },
+    { name = "pydantic-settings", specifier = ">=2.13.1" },
     { name = "pyjwt", specifier = ">=2.11.0" },
     { name = "scrypt", specifier = ">=0.9.4" },
 ]

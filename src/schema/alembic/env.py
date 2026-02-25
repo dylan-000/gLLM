@@ -2,14 +2,12 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from ...core.config import Settings
 
 from alembic import context
-import os
-from dotenv import load_dotenv
-import urllib
 
-load_dotenv()
-db_url = os.environ.get("DATABASE_URL")
+
+db_url = Settings().DATABASE_URL
 config = context.config
 
 if db_url:
