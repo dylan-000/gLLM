@@ -5,7 +5,7 @@ from vector_db import get_vector_db
 # Get Vector DB Instance (Currently ChromaDB)
 db = get_vector_db()
 
-def ingest_file(file_path, file_id, file_name, user_id, file_type):
+def ingest_file(file_path, file_id, file_name, file_type, user_id):
     docs = []
     
     # PDFs

@@ -10,12 +10,12 @@ services:
     ports:
       - ${POSTGRES_PORT:-5432}:5432
     
-    chromadb:
-      image: chromadb/chroma
-      container_name: chromadb
-      volumes:
-        - ./chroma-data:/data
-      environment:
-        - IS_PERSISTENT=1
-      ports:
-        - 8003:8000
+  chromadb:
+    image: chromadb/chroma
+    container_name: chromadb
+    volumes:
+      - ./chroma-data:/data
+    environment:
+      - IS_PERSISTENT=1
+    ports:
+      - 8003:8000
