@@ -1,9 +1,11 @@
-from openai import AsyncOpenAI
 import base64
+from typing import Dict, Optional
+
 import chainlit as cl
-from services.promptservice import PromptService
 from chainlit.types import ThreadDict
-from typing import Optional, Dict
+from openai import AsyncOpenAI
+
+from src.services.promptservice import PromptService
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()

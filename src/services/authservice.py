@@ -1,20 +1,22 @@
 import hashlib
-import os
-from sqlalchemy.orm import Session
-from ..models.user import UserCreate
-from ..models.auth import Token, TokenData
-from ..schema.models import User, UserRole
-from sqlalchemy import select
-from fastapi import HTTPException, status, Depends
-from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
-from pwdlib import PasswordHash
-from typing import Annotated
 import jwt
+import os
+from datetime import datetime, timedelta, timezone
+from typing import Annotated
+
+from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, status
 from jwt.exceptions import InvalidTokenError
-from .adminservice import AdminService
-from ..core.core import oauth2_scheme
-from ..core.config import Settings
+from pwdlib import PasswordHash
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from src.core.config import Settings
+from src.core.core import oauth2_scheme
+from src.models.auth import Token, TokenData
+from src.models.user import UserCreate
+from src.schema.models import User, UserRole
+from src.services.adminservice import AdminService
 
 SECRET_KEY = Settings().AUTH_SECRET
 ACCESS_TOKEN_EXPIRE_MINUTES = Settings().ACCESS_TOKEN_EXPIRE_MINUTES

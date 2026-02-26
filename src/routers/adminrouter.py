@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 from uuid import UUID
-from ..db.database import get_db, engine
-from ..services.adminservice import AdminService
-from ..models.user import UserResponse, UserUpdate
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+from src.db.database import engine, get_db
+from src.models.user import UserResponse, UserUpdate
+from src.services.adminservice import AdminService
 
 AdminRouter = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -41,7 +43,7 @@ async def update_user(
     # Validate role if provided
     if user_update.role:
         try:
-            from ..schema.models import UserRole
+            from src.schema.models import UserRole
 
             UserRole[user_update.role]
         except KeyError:

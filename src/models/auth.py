@@ -1,8 +1,10 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, Dict, Any
-from uuid import UUID
 from datetime import datetime
-from ..schema.models import UserRole
+from typing import Any, Dict, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
+from src.schema.models import UserRole
 
 
 class Token(BaseModel):

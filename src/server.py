@@ -1,13 +1,15 @@
-from .routers.authrouter import AuthRouter
-from .routers.adminrouter import AdminRouter
-from chainlit.utils import mount_chainlit
-from fastapi import FastAPI, Depends, Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.staticfiles import StaticFiles
-from .core.core import oauth2_scheme
-import os
 import json
+import os
 import time
+
+from chainlit.utils import mount_chainlit
+from fastapi import Depends, FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from src.core.core import oauth2_scheme
+from src.routers.adminrouter import AdminRouter
+from src.routers.authrouter import AuthRouter
 
 app = FastAPI()
 

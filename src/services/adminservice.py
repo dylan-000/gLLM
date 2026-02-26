@@ -1,9 +1,11 @@
 import hashlib
 import os
-from sqlalchemy.orm import Session
-from ..schema.models import User, UserRole
-from sqlalchemy import select
 from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from src.schema.models import User, UserRole
 
 
 class AdminService:
