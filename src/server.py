@@ -14,8 +14,6 @@ from src.routers.authrouter import AuthRouter
 
 app = FastAPI()
 
-app.add_middleware(RequestLoggingMiddleware)
-
 app.include_router(AuthRouter)
 app.include_router(AdminRouter, dependencies=[Depends(oauth2_scheme)])
 mount_chainlit(app=app, target="./chainlit-app.py", path="/gllm")
