@@ -8,11 +8,11 @@ import { useTheme } from "../contexts/ThemeContext";
 
 // Test Data
 const CURRENT_USER = {
-  username: "nenglert",
-  email: "n.englert@psu.edu",
-  firstName: "Nathan",
-  lastName: "Englert",
-  role: UserRole.REGUSER
+  username: "admin",
+  email: "admin@psu.edu",
+  firstName: "Admin",
+  lastName: "Admin",
+  role: UserRole.ADMIN
 };
 
 export default function MainMenu() {
@@ -22,7 +22,7 @@ export default function MainMenu() {
 
   const handleNavigation = (path: string) => {
     if (path === "/chat") 
-      window.open("/gllm", "_blank");
+      window.location.replace("http://localhost:8001/gllm/"); //TODO: remove chirper artifact
     else 
       navigate(path);
   };
