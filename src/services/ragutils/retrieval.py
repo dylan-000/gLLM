@@ -1,4 +1,4 @@
-from src.ragutils.vector_db import get_vector_db
+from src.services.ragutils.vector_db import get_vector_db
 
 db = get_vector_db()
 

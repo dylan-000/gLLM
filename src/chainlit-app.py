@@ -14,8 +14,8 @@ from src.db.database import get_db
 from src.core.config import Settings
 from src.models.auth import TokenData
 from src.schema.models import UserRole
-from src.ragutils import ingestion
-from src.ragutils import retrieval
+from src.services.ragutils import ingestion
+from src.services.ragutils import retrieval
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()

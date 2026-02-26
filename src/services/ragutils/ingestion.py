@@ -1,7 +1,7 @@
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 
-from src.ragutils.vector_db import get_vector_db
+from src.services.ragutils.vector_db import get_vector_db
 
 
 db = get_vector_db()
