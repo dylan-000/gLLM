@@ -3,12 +3,11 @@ import base64
 import chainlit as cl
 from services.promptservice import PromptService
 from chainlit.types import ThreadDict
-import json
+from typing import Optional, Dict
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
 pm = PromptService()
-
 SYSTEM_PROMPT = pm.get_system()
 settings = {"model": "Kimi-VL-A3B-Thinking", "temperature": 0.7}  # Kimi-VL-A3B-Thinking
 
@@ -28,15 +27,9 @@ async def on_chat_resume(thread: ThreadDict):
             )
 
 
-# TODO: Implment real authentication callback.. AuthHandler
-@cl.password_auth_callback
-def auth_callback(username: str, password: str):
-    if (username, password) == ("admin", "admin"):
-        return cl.User(
-            identifier="admin", metadata={"role": "admin", "provider": "credentials"}
-        )
-    else:
-        return None
+@cl.header_auth_callback
+def header_auth_callback(headers: Dict) -> Optional[cl.User]:
+    return None
 
 
 @cl.on_chat_start

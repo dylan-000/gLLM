@@ -21,45 +21,43 @@ async def get_user_by_id(userId: UUID, db: Session = Depends(get_db)):
     user = admin_service.get_user_by_id(userId, db)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
 
 
 @AdminRouter.put("/users/{userId}", response_model=UserResponse)
-async def update_user(userId: UUID, user_update: UserUpdate, db: Session = Depends(get_db)):
+async def update_user(
+    userId: UUID, user_update: UserUpdate, db: Session = Depends(get_db)
+):
     """Update a user's fields."""
     # Check if user exists
     user = admin_service.get_user_by_id(userId, db)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
+
     # Validate role if provided
     if user_update.role:
         try:
             from ..schema.models import UserRole
+
             UserRole[user_update.role]
         except KeyError:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Invalid role. Must be one of: {', '.join([r.value for r in UserRole])}"
+                detail=f"Invalid role. Must be one of: {', '.join([r.value for r in UserRole])}",
             )
-    
+
     try:
         updated_user = admin_service.update_user(
-            userId, 
-            user_update.model_dump(exclude_unset=True),
-            db
+            userId, user_update.model_dump(exclude_unset=True), db
         )
         return updated_user
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
 
 
@@ -69,9 +67,8 @@ async def delete_user(userId: UUID, db: Session = Depends(get_db)):
     user = admin_service.get_user_by_id(userId, db)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
+
     admin_service.delete_user(userId, db)
     return None
