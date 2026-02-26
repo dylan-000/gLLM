@@ -87,10 +87,9 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
 
     # print(f'success. user {user.identifier} allowed in')
     return cl.User(
-        identifier='admin',
+        identifier="admin",
         metadata={"role": f"admin", "provider": "header"},
     )
-    
 
 
 @cl.on_chat_start
@@ -109,7 +108,7 @@ async def on_message(cl_msg: cl.Message):
 
     IMAGES = []
     DOCS = []
-    
+
     for file in cl_msg.elements:
         if "image" in file.mime:
             IMAGES.append(file)
@@ -120,13 +119,12 @@ async def on_message(cl_msg: cl.Message):
         for doc in DOCS:
             ingestion.ingest_file(
                 file_path=doc.path,
-                file_id=doc.id, 
-                file_name=doc.name, 
-                file_type=doc.mime, 
-                user_id=user_id
+                file_id=doc.id,
+                file_name=doc.name,
+                file_type=doc.mime,
+                user_id=user_id,
             )
 
-    
     # Call RAG_utils retrieval module to get context
     context_str = retrieval.get_context(cl_msg.content, user_id)
 
@@ -148,7 +146,6 @@ async def on_message(cl_msg: cl.Message):
                 "image_url": {"url": f"data:image/png;base64,{b64_image}"},
             },
         )
-
 
     message_history = cl.user_session.get("message_history")
     message_history.append(message)

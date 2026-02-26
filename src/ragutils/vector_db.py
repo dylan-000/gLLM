@@ -10,7 +10,7 @@ class VectorDB(ABC):
         Inserts or updates chunks.
         """
         pass
-    
+
     @abstractmethod
     def search(self, query, user_id, n_results=5):
         """
@@ -37,29 +37,21 @@ class ChromaDB(VectorDB):
         """
         Inserts or updates chunks.
         """
-        self.collection.upsert(
-            ids=ids,
-            documents=chunks,
-            metadatas=metadatas
-        )
+        self.collection.upsert(ids=ids, documents=chunks, metadatas=metadatas)
 
     def search(self, query, user_id, n_results=5):
         """
         Search strictly scoped to the user_id.
         """
         return self.collection.query(
-            query_texts=[query],
-            n_results=n_results,
-            where={"user_id": user_id}
+            query_texts=[query], n_results=n_results, where={"user_id": user_id}
         )
-        
+
     def delete_file(self, file_id):
         """
         Deletes all chunks associated with a specific file.
         """
-        self.collection.delete(
-            where={"source_file_id": file_id}
-        )
+        self.collection.delete(where={"source_file_id": file_id})
 
 
 def get_vector_db():
