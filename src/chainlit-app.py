@@ -17,8 +17,8 @@ from src.models.auth import TokenData
 from src.schema.models import UserRole
 from src.services.ragutils import ingestion
 from src.services.ragutils import retrieval
-from sqlalchemy.orm import Session
-from fastapi import Depends
+from datetime import datetime, timezone
+
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
@@ -53,15 +53,16 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
     try:
         db_generator = get_db()
         db = next(db_generator)
-
         payload = jwt.decode(
             token, app_settings.AUTH_SECRET, algorithms=[app_settings.HASH_ALGORITHM]
         )
         username = payload.get("sub")
+        expire_at = payload.get("exp")
         if username is None:
-            raise Exception("Invalid Token. No username.")
-        token_data = TokenData(username=username)
-        user = get_user_from_identifier(identifier=token_data.username, db=db)
+            return None
+        elif datetime.now(timezone.utc) > datetime.fromtimestamp(expire_at, timezone.utc):
+            return None
+        user = get_user_from_identifier(identifier=username, db=db)
     except InvalidTokenError:
         raise Exception("Invalid Token Error")
     except Exception as e:
@@ -71,7 +72,6 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
     if user is None:
         return None
     elif user.role == UserRole.unauthorized:
-        print("User is unauthorized")
         return None
 
     return cl.User(
