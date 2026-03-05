@@ -16,15 +16,12 @@ from src.core.core import oauth2_scheme
 from src.models.auth import Token, TokenData
 from src.models.user import UserCreate
 from src.schema.models import User, UserRole
-from src.services.adminservice import AdminService
+from src.services.adminservice import get_user_from_identifier
 from src.db.database import get_db
 
-SECRET_KEY = Settings().AUTH_SECRET
-ACCESS_TOKEN_EXPIRE_MINUTES = Settings().ACCESS_TOKEN_EXPIRE_MINUTES
-ALGORITHM = Settings().HASH_ALGORITHM
+
 password_hash = PasswordHash.recommended()
 DUMMY_HASH = password_hash.hash("dummypassword")
-admin_service = AdminService()
 
 
 def signup_user(db: Session, user_in: UserCreate):
@@ -48,7 +45,7 @@ def signup_user(db: Session, user_in: UserCreate):
     try:
         db.add(db_user)
         db.commit()
-        db.refresh(db_user)  # Refreshes DB-generated fields like id and createdAt
+        db.refresh(db_user)
         return db_user
     except Exception as e:
         raise Exception(f"Error Adding User to Database: {str(e)}")
@@ -62,7 +59,7 @@ def login_user(db: Session, identifier: str, password: str) -> Token:
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=Settings().ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.identifier}, expires_delta=access_token_expires
     )
@@ -84,12 +81,14 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, Settings().AUTH_SECRET, algorithm=Settings().HASH_ALGORITHM
+    )
     return encoded_jwt
 
 
 def authenticate_user(db: Session, identifier: str, password: str):
-    user = admin_service.get_user_from_identifier(db=db, identifier=identifier)
+    user = get_user_from_identifier(db=db, identifier=identifier)
     if not user:
         verify_password(plain_password=password, hashed_password=DUMMY_HASH)
         return False
@@ -98,21 +97,24 @@ def authenticate_user(db: Session, identifier: str, password: str):
     return user
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[Session, Depends(get_db)]):
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token, Settings().AUTH_SECRET, algorithms=[Settings().HASH_ALGORITHM]
+        )
         username = payload.get("sub")
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-        user = admin_service.get_user_from_identifier(
-            identifier=token_data.username, db=db
-        )
+        user = get_user_from_identifier(identifier=token_data.username, db=db)
     except InvalidTokenError:
         raise credentials_exception
     except Exception:

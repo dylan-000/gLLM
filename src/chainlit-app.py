@@ -10,7 +10,7 @@ import http
 import jwt
 
 from src.services.promptservice import PromptService
-from src.services.adminservice import AdminService
+from src.services.adminservice import get_user_from_identifier
 from src.db.database import get_db
 from src.core.config import Settings
 from src.models.auth import TokenData
@@ -44,46 +44,39 @@ async def on_chat_resume(thread: ThreadDict):
 
 @cl.header_auth_callback
 def header_auth_callback(headers: Dict) -> Optional[cl.User]:
-    print(f'Incoing headers: {headers}\n')
     token = headers.get("bearer")
 
     if not token:
-        print("DEBUG: No token found.")
         return None
-    else:
-        print("Found Token")
+
     app_settings = Settings()
 
     try:
         db_generator = get_db()
         db = next(db_generator)
-        admin_service = AdminService()
+
         payload = jwt.decode(
             token, app_settings.AUTH_SECRET, algorithms=[app_settings.HASH_ALGORITHM]
         )
         username = payload.get("sub")
         if username is None:
             raise Exception("Invalid Token. No username.")
-        else:
+
             print(f"Username: {username}")
         token_data = TokenData(username=username)
-        user = admin_service.get_user_from_identifier( # This is returning an error
-            identifier=token_data.username, db=db
-        )
+        user = get_user_from_identifier(identifier=token_data.username, db=db)
     except InvalidTokenError:
         raise Exception("Invalid Token Error")
     except Exception as e:
-        print(f'ERROR OCCURRED DURING CHAINLIT HEADER AUTH VALIDATION:\n{e}\n')
+        print(f"ERROR OCCURRED DURING CHAINLIT HEADER AUTH VALIDATION:\n{e}\n")
         return None
 
     if user is None:
-        print('no user actually found')
         return None
     elif user.role == UserRole.unauthorized:
-        print('User is a scrub and is unauthorized')
+        print("User is unauthorized")
         return None
 
-    print(f'success. user {user.identifier} allowed in')
     return cl.User(
         identifier=f"{user.identifier}",
         metadata={"role": f"{user.role}", "provider": "header"},
@@ -91,7 +84,7 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
 
 
 @cl.on_logout
-def main(request: Request, response: Response):
+def logout(request: Request, response: Response):
     response.delete_cookie("my_cookie")
 
 
@@ -128,18 +121,14 @@ async def on_message(cl_msg: cl.Message):
                 user_id=user_id,
             )
 
-    # Call RAG_utils retrieval module to get context
     context_str = retrieval.get_context(cl_msg.content, user_id)
 
-    # Combine user query with retrieved context (if any)
     final_query = cl_msg.content
     if context_str:
         final_query = f"Document Context: {context_str}\n\nUser Query: {cl_msg.content}"
 
-    # Construct the openAI-format message with the final_query
     message = {"role": "user", "content": [{"type": "text", "text": final_query}]}
 
-    # Now process images (if any), which will be appended to message["content"]
     for image in IMAGES:
         with open(image.path, "rb") as image_file:
             b64_image = base64.b64encode(image_file.read()).decode("utf-8")
