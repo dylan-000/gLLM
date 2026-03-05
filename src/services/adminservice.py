@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.schema.models import User, UserRole
+from src.db.database import get_db
 
 
 class AdminService:
@@ -29,8 +30,8 @@ class AdminService:
 
     def get_user_from_identifier(self, identifier: str, db: Session) -> User:
         stmt = select(User).where(User.identifier == identifier).limit(1)
-        result = db.execute(stmt)
-        return result.scalar()
+        result = db.scalar(stmt)
+        return result
 
     def get_user_by_id(self, user_id: UUID, db: Session) -> User | None:
         """

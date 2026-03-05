@@ -5,6 +5,7 @@ import chainlit as cl
 from chainlit.types import ThreadDict
 from openai import AsyncOpenAI
 from jwt.exceptions import InvalidTokenError
+from fastapi import Request, Response
 import http
 import jwt
 
@@ -16,6 +17,8 @@ from src.models.auth import TokenData
 from src.schema.models import UserRole
 from src.services.ragutils import ingestion
 from src.services.ragutils import retrieval
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
@@ -41,55 +44,55 @@ async def on_chat_resume(thread: ThreadDict):
 
 @cl.header_auth_callback
 def header_auth_callback(headers: Dict) -> Optional[cl.User]:
-    # print("poopie")
-    # cookie_header = headers.get("cookie") or headers.get("Cookie")
+    print(f'Incoing headers: {headers}\n')
+    token = headers.get("bearer")
 
-    # if not cookie_header:
-    #     print("DEBUG: No cookies found in headers.")
-    #     return None
+    if not token:
+        print("DEBUG: No token found.")
+        return None
+    else:
+        print("Found Token")
+    app_settings = Settings()
 
-    # cookie = http.cookies.SimpleCookie()
-    # cookie.load(cookie_header)
+    try:
+        db_generator = get_db()
+        db = next(db_generator)
+        admin_service = AdminService()
+        payload = jwt.decode(
+            token, app_settings.AUTH_SECRET, algorithms=[app_settings.HASH_ALGORITHM]
+        )
+        username = payload.get("sub")
+        if username is None:
+            raise Exception("Invalid Token. No username.")
+        else:
+            print(f"Username: {username}")
+        token_data = TokenData(username=username)
+        user = admin_service.get_user_from_identifier( # This is returning an error
+            identifier=token_data.username, db=db
+        )
+    except InvalidTokenError:
+        raise Exception("Invalid Token Error")
+    except Exception as e:
+        print(f'ERROR OCCURRED DURING CHAINLIT HEADER AUTH VALIDATION:\n{e}\n')
+        return None
 
-    # if "access_token" not in cookie:
-    #     print("DEBUG: 'access_token' cookie missing.")
-    #     return None
+    if user is None:
+        print('no user actually found')
+        return None
+    elif user.role == UserRole.unauthorized:
+        print('User is a scrub and is unauthorized')
+        return None
 
-    # token = cookie["access_token"].value
-
-    # app_settings = Settings()
-
-    # try:
-    #     db = get_db()
-    #     admin_service = AdminService()
-    #     payload = jwt.decode(
-    #         token, app_settings.SECRET_KEY, algorithms=[app_settings.ALGORITHM]
-    #     )
-    #     username = payload.get("sub")
-    #     if username is None:
-    #         raise Exception("Invalid Token. No username.")
-    #     token_data = TokenData(username=username)
-    #     user = admin_service.get_user_from_identifier(
-    #         identifier=token_data.username, db=db
-    #     )
-    # except InvalidTokenError:
-    #     raise Exception("Invalid Token Error")
-    # except Exception as e:
-    #     print(e)
-    #     return None
-
-    # if user is None:
-    #     print('no user actually found')
-    #     return None
-    # elif user.role == UserRole.unauthorized:
-    #     print('User is a scrub and is unauthorized')
-    #     return None
-
-    # print(f'success. user {user.identifier} allowed in')
+    print(f'success. user {user.identifier} allowed in')
     return cl.User(
-        identifier="admin",
-        metadata={"role": f"admin", "provider": "header"},
+        identifier=f"{user.identifier}",
+        metadata={"role": f"{user.role}", "provider": "header"},
     )
+
+
+@cl.on_logout
+def main(request: Request, response: Response):
+    response.delete_cookie("my_cookie")
 
 
 @cl.on_chat_start

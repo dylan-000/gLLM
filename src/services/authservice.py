@@ -17,6 +17,7 @@ from src.models.auth import Token, TokenData
 from src.models.user import UserCreate
 from src.schema.models import User, UserRole
 from src.services.adminservice import AdminService
+from src.db.database import get_db
 
 SECRET_KEY = Settings().AUTH_SECRET
 ACCESS_TOKEN_EXPIRE_MINUTES = Settings().ACCESS_TOKEN_EXPIRE_MINUTES
@@ -97,7 +98,7 @@ def authenticate_user(db: Session, identifier: str, password: str):
     return user
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[Session, Depends(get_db)]):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
