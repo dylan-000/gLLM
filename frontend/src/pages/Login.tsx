@@ -28,7 +28,6 @@ export default function Login() {
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault()
-                alert("Login clicked (UI only)")
               }}
             >
               {/* Username */}

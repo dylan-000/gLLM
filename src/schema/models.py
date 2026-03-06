@@ -1,22 +1,21 @@
 import enum
 from sqlalchemy import (
-    Column,
-    String,
-    DateTime,
     Boolean,
-    Integer,
+    Column,
+    DateTime,
+    Enum as SAEnum,
     Float,
     ForeignKey,
     Index,
+    Integer,
+    String,
     func,
     text,
-    Enum as SAEnum,
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import relationship
-from ..db.database import (
-    Base,
-)  # just remove the '.' when you're running an 'alembic upgrade head' to apply a migration. Idk. Put it back when you're done :)
+
+from src.db.database import Base
 
 """
 This is the database schema definition. All of these classes are database models and are NOT the same as the DTOs also defined here.

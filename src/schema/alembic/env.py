@@ -1,15 +1,12 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
-import os
-from dotenv import load_dotenv
-import urllib
+from sqlalchemy import engine_from_config, pool
 
-load_dotenv()
-db_url = os.environ.get("DATABASE_URL")
+from src.core.config import Settings
+
+
+db_url = Settings().DATABASE_URL
 config = context.config
 
 if db_url:
@@ -25,7 +22,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[3])) # don't touch this
+
+sys.path.append(str(Path(__file__).resolve().parents[3]))  # don't touch this
 from src.schema.models import Base
 
 target_metadata = [Base.metadata]
