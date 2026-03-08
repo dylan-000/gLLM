@@ -1,0 +1,76 @@
+# gLLM Fine-Tuning Configuration
+# Copy this file and modify for your use case.
+
+model:
+  # HuggingFace model name or local path
+  name: "unsloth/Qwen2.5-7B-bnb-4bit"
+  max_seq_length: 2048
+  load_in_4bit: true  # QLoRA (recommended for memory efficiency)
+
+lora:
+  r: 16                # LoRA rank (8, 16, 32, 64)
+  lora_alpha: 16       # Scaling factor (typically same as r)
+  target_modules:      # Which layers to apply LoRA to
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  random_state: 3407
+
+dataset:
+  # HuggingFace dataset name OR local file path (.json, .jsonl, .csv)
+  source: "yahma/alpaca-cleaned"
+  split: "train"
+
+  # Column mappings (adjust to match your dataset)
+  instruction_column: "instruction"
+  input_column: "input"
+  output_column: "output"
+
+  # Optional: limit dataset size for testing
+  # max_samples: 1000
+
+  # Prompt template (uses {instruction}, {input}, {output} placeholders)
+  prompt_template: |
+    Below is an instruction that describes a task, paired with an input
+    that provides further context. Write a response that appropriately
+    completes the request.
+
+    ### Instruction:
+    {instruction}
+
+    ### Input:
+    {input}
+
+    ### Response:
+    {output}
+
+training:
+  batch_size: 2
+  gradient_accumulation_steps: 4
+  warmup_steps: 5
+  num_epochs: 3
+  # max_steps: 100          # Uncomment to override num_epochs
+  learning_rate: 2e-4
+  optimizer: "adamw_8bit"
+  weight_decay: 0.01
+  lr_scheduler: "linear"
+  logging_steps: 10
+  save_strategy: "epoch"
+  output_dir: "./outputs"
+  seed: 3407
+
+save:
+  # Local path for LoRA adapter files (~100MB)
+  local_path: "./lora_adapter"
+
+  # Optionally save full merged model (15-30GB+)
+  save_merged: false
+  merged_path: "./merged_model"
+
+  # Push to HuggingFace Hub (requires HF_TOKEN env var or hf_token below)
+  # hf_repo: "your-username/your-model-name"
+  # hf_token: ""  # Or set HF_TOKEN environment variable
