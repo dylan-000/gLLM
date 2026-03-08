@@ -5,10 +5,31 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/ui/Logo"
+import { useAuth } from "../contexts/AuthContext"
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsSubmitting(true)
+
+    try {
+      await login(username, password)
+      navigate("/main-menu")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
@@ -24,16 +45,24 @@ export default function Login() {
           </CardHeader>
 
           <CardContent>
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault()
-              }}
-            >
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {error && (
+                <div className="text-sm text-red-500 bg-red-50 dark:bg-red-950 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+
               {/* Username */}
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
-                <Input id="username" placeholder="username" autoComplete="username" required />
+                <Input
+                  id="username"
+                  placeholder="username"
+                  autoComplete="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
               </div>
 
               {/* Password with Show/Hide */}
@@ -45,6 +74,8 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                   <button
                     type="button"
@@ -56,12 +87,12 @@ export default function Login() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" onClick={() => navigate("/main-menu")}>
-                Sign in
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Signing in..." : "Sign in"}
               </Button>
 
               <div className="text-sm text-muted-foreground text-center">
-                Don’t have an account?{" "}
+                Don't have an account?{" "}
                 <Link to="/signup" className="text-primary hover:underline">
                   Sign up
                 </Link>
