@@ -111,15 +111,19 @@ async def on_message(cl_msg: cl.Message):
 
     if DOCS:
         for doc in DOCS:
-            ingestion.ingest_file(
+            count, error = ingestion.ingest_file(
                 file_path=doc.path,
                 file_id=doc.id,
                 file_name=doc.name,
                 file_type=doc.mime,
                 user_id=user_id,
             )
+            if error:
+                await cl.Message(content=f"⚠️ {error}").send()
+            elif count > 0:
+                await cl.Message(content=f"✅ Ingested **{doc.name}** ({count} chunks)").send()
 
-    context_str = retrieval.get_context(cl_msg.content, user_id)
+    context_str, sources = retrieval.get_context(cl_msg.content, user_id)
 
     final_query = cl_msg.content
     if context_str:
