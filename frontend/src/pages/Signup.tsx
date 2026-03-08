@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/ui/Logo"
 import { cn } from "@/lib/utils"
+import { signupApi } from "../services/api"
 
 export default function Signup() {
   const navigate = useNavigate();
 
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -25,7 +27,7 @@ export default function Signup() {
   const passwordsMatch = password && confirmPassword && password === confirmPassword
   const passwordsDontMatch = password && confirmPassword && !passwordsMatch
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!passwordsMatch) {
@@ -34,7 +36,22 @@ export default function Signup() {
     }
 
     setError("")
-    setSubmitted(true)
+    setIsSubmitting(true)
+
+    try {
+      await signupApi({
+        identifier: username,
+        password,
+        firstname: firstName,
+        lastname: lastName,
+        email,
+      })
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -160,8 +177,8 @@ export default function Signup() {
               {/* FUTURE BACKEND ERROR SLOT */}
               {error && <p className="text-sm text-destructive">{error}</p>}
 
-              <Button type="submit" className="w-full" disabled={!passwordsMatch}>
-                Request Access 
+              <Button type="submit" className="w-full" disabled={!passwordsMatch || isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Request Access"}
               </Button>
 
               <div className="text-sm text-muted-foreground text-center">

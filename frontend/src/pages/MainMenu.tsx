@@ -5,34 +5,49 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/button";
 import { UserRole } from "../models/User";
 import { useTheme } from "../contexts/ThemeContext";
-
-// Test Data
-const CURRENT_USER = {
-  username: "admin",
-  email: "admin@psu.edu",
-  firstName: "Admin",
-  lastName: "Admin",
-  role: UserRole.ADMIN
-};
+import { useAuth } from "../contexts/AuthContext";
+import { getToken } from "../services/api";
 
 export default function MainMenu() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { theme, toggleTheme } = useTheme(); 
+  const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+
+  if (!user) return null;
 
   const handleNavigation = (path: string) => {
-    if (path === "/chat") 
-      window.location.replace("http://localhost:8001/gllm/"); //TODO: remove chirper artifact
-    else 
+    if (path === "/chat") {
+      // Send JWT as bearer header for Chainlit authentication
+      const token = getToken();
+      if (token) {
+        window.location.href = `/gllm/?bearer=${encodeURIComponent(token)}`;
+      } else {
+        window.location.href = "/gllm/";
+      }
+    } else if (path.startsWith("http")) {
+      window.open(path, "_blank");
+    } else {
       navigate(path);
+    }
   };
+
+  const handleSignOut = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const displayName = [user.firstname, user.lastname].filter(Boolean).join(" ") || user.identifier;
+  const initials = user.firstname && user.lastname
+    ? `${user.firstname[0]}${user.lastname[0]}`
+    : user.identifier[0].toUpperCase();
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300 font-sans">
-      
+
       {/* Sidebar */}
-      <aside 
-        className={`${sidebarOpen ? 'w-64' : 'w-20'} 
+      <aside
+        className={`${sidebarOpen ? 'w-64' : 'w-20'}
         bg-card border-r border-border transition-all duration-300 flex flex-col fixed h-full z-20 shadow-sm`}
       >
         {/* Brand Header */}
@@ -54,20 +69,20 @@ export default function MainMenu() {
         <nav className="flex-1 p-3 space-y-1 mt-2">
           <SidebarLink icon={<LayoutDashboard />} label="Dashboard" active />
           <SidebarLink icon={<MessageSquare />} label="Chat Agent" onClick={() => handleNavigation("/chat")} />
-          
-          {CURRENT_USER.role === UserRole.ADMIN && (
+
+          {user.role === UserRole.ADMIN && (
              <SidebarLink icon={<Shield />} label="Admin Console" onClick={() => handleNavigation("/admin")} />
           )}
-          
-          {(CURRENT_USER.role === UserRole.ADMIN || CURRENT_USER.role === UserRole.FINETUNER) && (
-             <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
+
+          {(user.role === UserRole.ADMIN || user.role === UserRole.FINE_TUNER) && (
+             <SidebarLink icon={<Terminal />} label="Fine-Tuning" onClick={() => handleNavigation("https://unsloth.ai")} />
           )}
         </nav>
 
         {/* User Footer */}
         <div className="p-4 border-t border-border">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`w-full justify-start ${!sidebarOpen && 'px-2 justify-center'}`}
             onClick={toggleTheme}
           >
@@ -80,10 +95,10 @@ export default function MainMenu() {
                 {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </span>}
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${!sidebarOpen && 'px-2 justify-center'}`}
-            onClick={() => navigate("/login")}
+            onClick={handleSignOut}
           >
             <LogOut className="h-4 w-4" />
             {sidebarOpen && <span className="ml-2">Sign Out</span>}
@@ -93,7 +108,7 @@ export default function MainMenu() {
 
       {/* Main Content */}
       <main className={`flex-1 p-6 md:p-8 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ml-0`}>
-        
+
         {/* Page Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
@@ -106,9 +121,6 @@ export default function MainMenu() {
              <span className="text-xs font-mono bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
                vLLM: Active
              </span>
-             <span className="text-xs font-mono bg-tertiary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
-               UnSloth: Inactive
-             </span>
           </div>
         </div>
 
@@ -117,15 +129,15 @@ export default function MainMenu() {
             {/* Main Applications */}
             <h2 className="text-lg font-semibold tracking-tight">Applications</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <ActionCard 
+               <ActionCard
                  title="Launch gLLM Agent"
                  desc="Start a new chat session with the domain adaptable model."
                  icon={<MessageSquare className="h-6 w-6 text-primary" />}
                  onClick={() => handleNavigation("/chat")}
                />
 
-               {CURRENT_USER.role === UserRole.ADMIN && (
-                 <ActionCard 
+               {user.role === UserRole.ADMIN && (
+                 <ActionCard
                    title="System Administration"
                    desc="Manage docker containers, user roles, and logs."
                    icon={<Shield className="h-6 w-6 text-chart-1" />}
@@ -133,17 +145,17 @@ export default function MainMenu() {
                  />
                )}
 
-               {(CURRENT_USER.role === UserRole.FINETUNER || CURRENT_USER.role === UserRole.ADMIN) && (
-                 <ActionCard 
+               {(user.role === UserRole.FINE_TUNER || user.role === UserRole.ADMIN) && (
+                 <ActionCard
                    title="Fine-Tune Models"
                    desc="Access Jupyter interface for model training."
                    icon={<Terminal className="h-6 w-6 text-secondary" />}
                    onClick={() => handleNavigation("https://unsloth.ai")}
                  />
                )}
-               
-               {CURRENT_USER.role === UserRole.REGUSER && (
-                 <ActionCard 
+
+               {user.role === UserRole.NORMAL && (
+                 <ActionCard
                    title="Request Access"
                    desc="Submit request for fine-tuning privileges."
                    icon={<Settings className="h-6 w-6 text-muted-foreground" />}
@@ -152,7 +164,7 @@ export default function MainMenu() {
                )}
             </div>
           </div>
-          
+
           {/* Profile */}
           <div className="space-y-6">
             <h2 className="text-lg font-semibold tracking-tight">Your Profile</h2>
@@ -160,26 +172,25 @@ export default function MainMenu() {
               <CardHeader className="pb-3 border-b border-border/50">
                  <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                      {CURRENT_USER.firstName[0]}{CURRENT_USER.lastName[0]}
+                      {initials}
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{CURRENT_USER.firstName} {CURRENT_USER.lastName}</CardTitle>
-                      <CardDescription>{CURRENT_USER.role}</CardDescription>
+                      <CardTitle className="text-lg">{displayName}</CardTitle>
+                      <CardDescription>{user.role}</CardDescription>
                     </div>
                  </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                 <ProfileField label="Username" value={CURRENT_USER.username} />
-                 <ProfileField label="Email" value={CURRENT_USER.email} />
-                 <ProfileField label="Access Level" value={CURRENT_USER.role.toUpperCase()} />
-                 
+                 <ProfileField label="Username" value={user.identifier} />
+                 <ProfileField label="Email" value={user.email || "—"} />
+                 <ProfileField label="Access Level" value={user.role.toUpperCase()} />
+
                  <Button variant="outline" className="w-full mt-2">
                    <Settings className="mr-2 h-4 w-4" /> Edit Profile
                  </Button>
               </CardContent>
             </Card>
 
-            {/* Placeholder for Recent Activity */}
             <Card className="bg-muted/30 border-dashed">
                <CardContent className="p-6 text-center text-muted-foreground text-sm">
                   No recent system notifications.
@@ -195,7 +206,7 @@ export default function MainMenu() {
 
 function SidebarLink({ icon, label, onClick, active }: any) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className={`flex items-center w-full p-2.5 rounded-lg transition-colors duration-200 group
         ${active ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
@@ -209,7 +220,7 @@ function SidebarLink({ icon, label, onClick, active }: any) {
 
 function ActionCard({ title, desc, icon, onClick }: any) {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/50 cursor-pointer"
     >

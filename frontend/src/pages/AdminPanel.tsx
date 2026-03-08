@@ -1,16 +1,60 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, Database, Activity, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Users, Activity, Search, CheckCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { getUsers, updateUserRole, deleteUser } from "../services/api";
+import type { User } from "../models/User";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await getUsers();
+      setUsers(data);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const pendingUsers = users.filter((u) => u.role === "unauthorized");
+  const activeUsers = users.filter((u) => u.role !== "unauthorized");
+
+  const handleApprove = async (userId: string) => {
+    try {
+      await updateUserRole(userId, "normal");
+      await fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to approve user");
+    }
+  };
+
+  const handleDeny = async (userId: string) => {
+    try {
+      await deleteUser(userId);
+      await fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to deny user");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      
-      {/* Top Bar (Simplified for Admin View) */}
+
+      {/* Top Bar */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -26,7 +70,7 @@ export default function AdminPanel() {
           <div className="flex items-center gap-4">
              <div className="relative hidden md:block">
                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-               <Input placeholder="Search logs..." className="pl-9 w-64 h-9" />
+               <Input placeholder="Search users..." className="pl-9 w-64 h-9" />
              </div>
           </div>
         </div>
@@ -34,74 +78,109 @@ export default function AdminPanel() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8">
-        
+
+        {error && (
+          <div className="text-sm text-red-500 bg-red-50 dark:bg-red-950 p-3 rounded-md">
+            {error}
+          </div>
+        )}
+
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <AdminStatCard 
-            title="Total Users" 
-            value="142" 
-            desc="+12 this week" 
-            icon={<Users className="h-5 w-5 text-blue-500" />} 
+          <AdminStatCard
+            title="Total Users"
+            value={String(users.length)}
+            desc={`${pendingUsers.length} pending`}
+            icon={<Users className="h-5 w-5 text-blue-500" />}
           />
-          <AdminStatCard 
-            title="Active Containers" 
-            value="8/10" 
-            desc="Operating normally" 
-            icon={<Database className="h-5 w-5 text-green-500" />} 
+          <AdminStatCard
+            title="Active Users"
+            value={String(activeUsers.length)}
+            desc="Approved accounts"
+            icon={<CheckCircle className="h-5 w-5 text-green-500" />}
           />
-          <AdminStatCard 
-            title="Error Rate" 
-            value="0.4%" 
-            desc="Last 24 hours" 
-            icon={<Activity className="h-5 w-5 text-orange-500" />} 
+          <AdminStatCard
+            title="Pending Approvals"
+            value={String(pendingUsers.length)}
+            desc="Awaiting review"
+            icon={<Activity className="h-5 w-5 text-orange-500" />}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* User Management Section */}
+          {/* Pending Approvals */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-               <h2 className="text-xl font-semibold tracking-tight">User Management</h2>
-               <Button variant="outline" size="sm">View All</Button>
+               <h2 className="text-xl font-semibold tracking-tight">Pending Approvals</h2>
+               <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
+                 {loading ? "Loading..." : "Refresh"}
+               </Button>
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Pending Approvals</CardTitle>
-                <CardDescription>New users requesting access.</CardDescription>
+                <CardTitle>New User Requests</CardTitle>
+                <CardDescription>Users requesting access to the system.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                 {[1, 2, 3].map((i) => (
-                   <div key={i} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">U{i}</div>
-                        <div>
-                          <p className="text-sm font-medium">User_{i} Request</p>
-                          <p className="text-xs text-muted-foreground">user{i}@example.com</p>
-                        </div>
+                {loading && <p className="text-sm text-muted-foreground">Loading users...</p>}
+
+                {!loading && pendingUsers.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No pending requests.</p>
+                )}
+
+                {pendingUsers.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                        {user.identifier[0].toUpperCase()}
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="default" className="h-7 text-xs">Approve</Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:bg-destructive/10">Deny</Button>
+                      <div>
+                        <p className="text-sm font-medium">{user.identifier}</p>
+                        <p className="text-xs text-muted-foreground">{user.email || "No email"}</p>
                       </div>
-                   </div>
-                 ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => handleApprove(user.id)}>
+                        Approve
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDeny(user.id)}>
+                        Deny
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
 
-          {/* System Logs Section */}
+          {/* Active Users */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-               <h2 className="text-xl font-semibold tracking-tight">System Logs</h2>
-               <Button variant="outline" size="sm">Export</Button>
+               <h2 className="text-xl font-semibold tracking-tight">Active Users</h2>
             </div>
-            <Card className="bg-black/95 text-green-400 font-mono text-xs p-4 h-[300px] overflow-y-auto border-border shadow-inner">
-               <p>[10:42:01] INFO: vLLM server started on port 8000</p>
-               <p>[10:42:05] INFO: Model 'Qwen2.5-Coder' loaded successfully</p>
-               <p>[10:45:12] WARN: High memory usage detected (85%)</p>
-               <p>[10:46:00] INFO: User 'nenglert' initiated session</p>
-               <p>[10:48:22] ERROR: Connection timeout for Container ID #4421</p>
-               <p className="animate-pulse">_</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Approved Users</CardTitle>
+                <CardDescription>Users with active access.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 max-h-[400px] overflow-y-auto">
+                {activeUsers.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                        {user.identifier[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{user.identifier}</p>
+                        <p className="text-xs text-muted-foreground">{user.email || "No email"}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-1 rounded">
+                      {user.role}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
             </Card>
           </div>
         </div>
