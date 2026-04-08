@@ -97,8 +97,8 @@ Assumptions:
 
 Steps:
 1. Clone the project.
-2. `cd` into `./src/` and run `uv sync` to install the dependencies for the project. Now run `source ./venv/bin/activate` to activate the virtual environment that uv created. This allows you to use the dependencies and scripts you downloaded with the `uv sync` command.
-3. Add an `.env` file to `./src/`. It should look like this: 
+2. `cd` into `./src/` and run `uv sync` to install the dependencies for the project. Now activate the virtual environment that `uv` created. On Mac/Linux, run `source .venv/bin/activate` (or `venv/bin/activate`). On Windows, run `.\.venv\Scripts\activate` (or `.\venv\Scripts\activate`). This allows you to use the dependencies and scripts you downloaded with the `uv sync` command.
+3. Add an `.env` file directly inside the `./src/` directory exactly (i.e. `./src/.env`). It will not be detected if it is in the project root. It should at least contain the following variables: 
 ```
 DATABASE_URL=
 BUCKET_NAME=
@@ -110,9 +110,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=
 HASH_ALGORITHM=
 CHAINLIT_AUTH_SECRET=
 ```
-4. Now, in the project root, run `sudo docker compose up -d` to compose up the project PostgreSQL database and ChromaDB containers respectively.
+4. Now, in the project root, ensure your Docker Engine (e.g., Docker Desktop) is fully booted and running. Then run `docker compose up -d` (add `sudo` if on Linux) to compose up the project PostgreSQL database and ChromaDB containers respectively. 
+    *Troubleshooting Note:* On Windows, you might need to use `127.0.0.1` instead of `localhost` in your `DATABASE_URL` string inside `.env` to avoid IPv6 authentication errors. Additionally, ensure you don't have a native PostgreSQL Windows service already intercepting port 5432.
 5. If that went well, you now have the database and vector database up and running. You still need to *apply* the schema to the database because it doesn't have any tables as is.
-6. To apply the database schema to your fresh database, `cd` into `./src/schema/` and run `alembic upgrade head`. If you have the right connection information in your environment variables placed in `.env`, this should work.
+6. To apply the database schema to your fresh database, `cd` into `./src/schema/` and run `uv run alembic upgrade head`. Using `uv run` ensures the correct environment is executed even if you didn't manually activate it. If you have the right connection information in your `.env` variables, this should work.
 7. Now before we start the backend server to startup the llm interface, we're going to build the frontend so that our backend at least has something to serve at its root. `cd` into `./frontend/`.
 8. run `npm i` to install the dependencies.
 9. run `npm run build` to build the project.
