@@ -14,6 +14,7 @@ dtype=auto # This can effect whether a model runs or not. auto will ensure that 
 # Run the docker container with our configuration
 sudo docker run --runtime nvidia --gpus all \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
+  --env "LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/usr/local/nvidia/lib64:/usr/local/nvidia/lib" \
   --env "HUGGING_FACE_HUB_TOKEN=$HF_TOKEN" \
   -p $PORT:8000 \
   --ipc=host \
