@@ -18,9 +18,14 @@ from src.schema.models import UserRole
 app = FastAPI()
 
 app.include_router(AuthRouter)
+
+admin_deps = []
+if os.getenv("MOCK_CONTAINERS", "false").lower() != "true":
+    admin_deps = [Depends(oauth2_scheme), Depends(require_roles(UserRole.admin))]
+
 app.include_router(
     AdminRouter,
-    dependencies=[Depends(oauth2_scheme), Depends(require_roles(UserRole.admin))],
+    dependencies=admin_deps,
 )
 mount_chainlit(app=app, target="./chainlit-app.py", path="/gllm")
 

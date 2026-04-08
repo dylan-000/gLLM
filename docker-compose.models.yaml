@@ -1,0 +1,48 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    ports:
+      - "${PORT:-8000}:8000"
+    ipc: host
+    command: >
+      --model ${MODEL:-Qwen/Qwen2.5-Coder-7B-Instruct}
+      --host 0.0.0.0
+      --trust-remote-code
+      --served-model-name ${MODEL:-Qwen/Qwen2.5-Coder-7B-Instruct}
+      --swap-space 0
+      --dtype ${dtype:-auto}
+      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.9}
+      --max-model-len 32768
+
+  unsloth:
+    image: unsloth/unsloth:latest
+    container_name: unsloth
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    ports:
+      - "8002:8000" # Placeholder port for unsloth
+    ipc: host
+    command: tail -f /dev/null # Placeholder until proper deployment command is configured by user

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from src.db.database import engine, get_db
 from src.models.user import UserResponse, UserUpdate
 from src.services.adminservice import get_users, get_user_by_id
+from src.services.containerservice import get_container_status, start_container, stop_container
 
 AdminRouter = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -70,3 +71,38 @@ async def delete_user(userId: UUID, db: Session = Depends(get_db)):
 
     delete_user(userId, db)
     return None
+
+
+@AdminRouter.get("/containers/status")
+async def containers_status():
+    """Get the running status of model containers."""
+    vllm_status = get_container_status("vllm")
+    unsloth_status = get_container_status("unsloth")
+    return {
+        "vllm": {"status": "up" if vllm_status else "down"},
+        "unsloth": {"status": "up" if unsloth_status else "down"}
+    }
+
+
+@AdminRouter.post("/containers/{service_name}/start")
+async def start_service_container(service_name: str):
+    """Start a specific model container."""
+    if service_name not in ["vllm", "unsloth"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid service name")
+    
+    success = start_container(service_name)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to start {service_name}")
+    return {"message": f"{service_name} started successfully"}
+
+
+@AdminRouter.post("/containers/{service_name}/stop")
+async def stop_service_container(service_name: str):
+    """Stop a specific model container."""
+    if service_name not in ["vllm", "unsloth"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid service name")
+    
+    success = stop_container(service_name)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to stop {service_name}")
+    return {"message": f"{service_name} stopped successfully"}

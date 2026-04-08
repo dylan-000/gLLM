@@ -21,6 +21,9 @@ export default defineConfig({
       },
       '/chainlit-auth': {
         target: 'http://localhost:8001',
+      },
+      '/admin': {
+        target: 'http://localhost:8001',
       }
     },
   },
