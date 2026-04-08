@@ -3,8 +3,13 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from src.core.config import Settings
+import sys
+from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parents[3]))  # don't touch this
+
+from src.core.config import Settings
+from src.schema.models import Base
 
 db_url = Settings().DATABASE_URL
 config = context.config
@@ -20,11 +25,6 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parents[3]))  # don't touch this
-from src.schema.models import Base
 
 target_metadata = [Base.metadata]
 
