@@ -43,6 +43,6 @@ services:
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
     ports:
-      - "8002:8000" # Placeholder port for unsloth
+      - "8002:8000"
     ipc: host
-    command: tail -f /dev/null # Placeholder until proper deployment command is configured by user
+    command: jupyter lab --ip=0.0.0.0 --port=8000 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''

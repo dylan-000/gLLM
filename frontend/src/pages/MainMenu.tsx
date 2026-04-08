@@ -21,10 +21,13 @@ export default function MainMenu() {
   const { theme, toggleTheme } = useTheme(); 
 
   const handleNavigation = (path: string) => {
-    if (path === "/chat") 
+    if (path === "/chat") {
       window.location.replace("http://localhost:8001/gllm/"); //TODO: remove chirper artifact
-    else 
+    } else if (path === "unsloth") {
+      window.open(window.location.protocol + "//" + window.location.hostname + ":8002/", "_blank");
+    } else {
       navigate(path);
+    }
   };
 
   return (
@@ -60,7 +63,7 @@ export default function MainMenu() {
           )}
           
           {(CURRENT_USER.role === UserRole.ADMIN || CURRENT_USER.role === UserRole.FINETUNER) && (
-             <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
+             <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("unsloth")} />
           )}
         </nav>
 
@@ -138,7 +141,7 @@ export default function MainMenu() {
                    title="Fine-Tune Models"
                    desc="Access Jupyter interface for model training."
                    icon={<Terminal className="h-6 w-6 text-secondary" />}
-                   onClick={() => handleNavigation("https://unsloth.ai")}
+                   onClick={() => handleNavigation("unsloth")}
                  />
                )}
                
