@@ -5,26 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/button";
 import { UserRole } from "../models/User";
 import { useTheme } from "../contexts/ThemeContext";
-
-// Test Data
-const CURRENT_USER = {
-  username: "admin",
-  email: "admin@psu.edu",
-  firstName: "Admin",
-  lastName: "Admin",
-  role: UserRole.ADMIN
-};
+import { useAuth } from "../contexts/AuthContext";
+import { logout } from "@/services/authService";
 
 export default function MainMenu() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { theme, toggleTheme } = useTheme(); 
 
   const handleNavigation = (path: string) => {
     if (path === "/chat") 
-      window.location.replace("http://localhost:8001/gllm/"); //TODO: remove chirper artifact
+      window.location.replace("http://localhost:8001/gllm/");
     else 
       navigate(path);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      navigate("/login");
+    }
   };
 
   return (
@@ -55,11 +59,11 @@ export default function MainMenu() {
           <SidebarLink icon={<LayoutDashboard />} label="Dashboard" active />
           <SidebarLink icon={<MessageSquare />} label="Chat Agent" onClick={() => handleNavigation("/chat")} />
           
-          {CURRENT_USER.role === UserRole.ADMIN && (
+          {user?.role === UserRole.ADMIN && (
              <SidebarLink icon={<Shield />} label="Admin Console" onClick={() => handleNavigation("/admin")} />
           )}
           
-          {(CURRENT_USER.role === UserRole.ADMIN || CURRENT_USER.role === UserRole.FINETUNER) && (
+          {(user?.role === UserRole.ADMIN || user?.role === UserRole.FINETUNER) && (
              <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
           )}
         </nav>
@@ -83,7 +87,7 @@ export default function MainMenu() {
           <Button 
             variant="ghost" 
             className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${!sidebarOpen && 'px-2 justify-center'}`}
-            onClick={() => navigate("/login")}
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
             {sidebarOpen && <span className="ml-2">Sign Out</span>}
@@ -124,7 +128,7 @@ export default function MainMenu() {
                  onClick={() => handleNavigation("/chat")}
                />
 
-               {CURRENT_USER.role === UserRole.ADMIN && (
+               {user?.role === UserRole.ADMIN && (
                  <ActionCard 
                    title="System Administration"
                    desc="Manage docker containers, user roles, and logs."
@@ -133,7 +137,7 @@ export default function MainMenu() {
                  />
                )}
 
-               {(CURRENT_USER.role === UserRole.FINETUNER || CURRENT_USER.role === UserRole.ADMIN) && (
+               {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
                  <ActionCard 
                    title="Fine-Tune Models"
                    desc="Access Jupyter interface for model training."
@@ -142,7 +146,7 @@ export default function MainMenu() {
                  />
                )}
                
-               {CURRENT_USER.role === UserRole.REGUSER && (
+               {user?.role === UserRole.REGUSER && (
                  <ActionCard 
                    title="Request Access"
                    desc="Submit request for fine-tuning privileges."
@@ -160,18 +164,18 @@ export default function MainMenu() {
               <CardHeader className="pb-3 border-b border-border/50">
                  <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                      {CURRENT_USER.firstName[0]}{CURRENT_USER.lastName[0]}
+                      {user?.firstname?.[0]}{user?.lastname?.[0]}
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{CURRENT_USER.firstName} {CURRENT_USER.lastName}</CardTitle>
-                      <CardDescription>{CURRENT_USER.role}</CardDescription>
+                      <CardTitle className="text-lg">{user?.firstname} {user?.lastname}</CardTitle>
+                      <CardDescription>{user?.role}</CardDescription>
                     </div>
                  </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                 <ProfileField label="Username" value={CURRENT_USER.username} />
-                 <ProfileField label="Email" value={CURRENT_USER.email} />
-                 <ProfileField label="Access Level" value={CURRENT_USER.role.toUpperCase()} />
+                 <ProfileField label="Username" value={user?.identifier || "N/A"} />
+                 <ProfileField label="Email" value={user?.email || "N/A"} />
+                 <ProfileField label="Access Level" value={user?.role?.toUpperCase() || "N/A"} />
                  
                  <Button variant="outline" className="w-full mt-2">
                    <Settings className="mr-2 h-4 w-4" /> Edit Profile

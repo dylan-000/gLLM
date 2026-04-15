@@ -43,41 +43,78 @@ async def on_chat_resume(thread: ThreadDict):
 
 @cl.header_auth_callback
 def header_auth_callback(headers: Dict) -> Optional[cl.User]:
-    token = headers.get("bearer")
+    """
+    Authenticates user from HttpOnly cookie containing JWT.
+    The browser automatically sends the auth_token cookie with requests.
 
-    if not token:
-        return None
-
-    app_settings = Settings()
-
+    This callback is called when a user accesses the Chainlit app.
+    """
     try:
-        db_generator = get_db()
-        db = next(db_generator)
-        payload = jwt.decode(
-            token, app_settings.AUTH_SECRET, algorithms=[app_settings.HASH_ALGORITHM]
-        )
+        cookie_header = headers.get("Cookie")
+
+        if not cookie_header:
+            print("No Cookie header found")
+            return None
+
+        auth_token = None
+        for cookie in cookie_header.split(";"):
+            cookie = cookie.strip()
+            if cookie.startswith("auth_token="):
+                auth_token = cookie.split("=", 1)[1]
+                break
+
+        if not auth_token:
+            print("auth_token not found in cookies")
+            return None
+
+        settings = Settings()
+        try:
+            payload = jwt.decode(
+                auth_token, settings.AUTH_SECRET, algorithms=[settings.HASH_ALGORITHM]
+            )
+        except jwt.ExpiredSignatureError:
+            print("Token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            print(f"Invalid token: {e}")
+            return None
+
         username = payload.get("sub")
         expire_at = payload.get("exp")
-        if username is None:
+
+        if not username:
+            print("Username (sub) not found in token payload")
             return None
-        elif datetime.now(timezone.utc) > datetime.fromtimestamp(expire_at, timezone.utc):
+
+        if datetime.now(timezone.utc) > datetime.fromtimestamp(expire_at, timezone.utc):
+            print("Token has expired")
             return None
-        user = get_user_from_identifier(identifier=username, db=db)
-    except InvalidTokenError:
-        raise Exception("Invalid Token Error")
+
+        try:
+            db_generator = get_db()
+            db = next(db_generator)
+            user = get_user_from_identifier(identifier=username, db=db)
+
+            if not user:
+                print(f"User {username} not found in database")
+                return None
+
+            if user.role == UserRole.unauthorized:
+                print(f"User {username} is unauthorized")
+                return None
+
+            print(f"User {username} authenticated with role {user.role}")
+            return cl.User(
+                identifier=username,
+                metadata={"role": user.role.value, "email": user.email},
+            )
+        except Exception as e:
+            print(f"Error fetching user from database: {e}")
+            return None
+
     except Exception as e:
-        print(f"ERROR OCCURRED DURING CHAINLIT HEADER AUTH VALIDATION:\n{e}\n")
+        print(f"Unexpected error in header_auth_callback: {e}")
         return None
-
-    if user is None:
-        return None
-    elif user.role == UserRole.unauthorized:
-        return None
-
-    return cl.User(
-        identifier=f"{user.identifier}",
-        metadata={"role": f"{user.role}", "provider": "header"},
-    )
 
 
 @cl.on_logout

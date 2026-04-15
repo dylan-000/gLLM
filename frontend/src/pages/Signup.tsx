@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/ui/Logo"
 import { cn } from "@/lib/utils"
+import { signup } from "@/services/authService"
 
 export default function Signup() {
   const navigate = useNavigate();
 
   const [submitted, setSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -25,7 +27,7 @@ export default function Signup() {
   const passwordsMatch = password && confirmPassword && password === confirmPassword
   const passwordsDontMatch = password && confirmPassword && !passwordsMatch
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!passwordsMatch) {
@@ -34,7 +36,21 @@ export default function Signup() {
     }
 
     setError("")
-    setSubmitted(true)
+    setIsLoading(true)
+
+    try {
+      await signup({
+        identifier: username,
+        firstname: firstName,
+        lastname: lastName,
+        email: email,
+        password: password,
+      })
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed")
+      setIsLoading(false)
+    }
   }
 
   if (submitted) {
@@ -75,6 +91,13 @@ export default function Signup() {
 
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
+              {/* Error Message */}
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/50 text-destructive text-sm p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+
               {/* Name */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -85,6 +108,7 @@ export default function Signup() {
                     onChange={(e) => setFirstName(e.target.value)}
                     required
                     autoComplete="given-name"
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -96,6 +120,7 @@ export default function Signup() {
                     onChange={(e) => setLastName(e.target.value)}
                     required
                     autoComplete="family-name"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -109,6 +134,7 @@ export default function Signup() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -120,6 +146,7 @@ export default function Signup() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   autoComplete="username"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -132,6 +159,7 @@ export default function Signup() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="new-password"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -148,6 +176,7 @@ export default function Signup() {
                   )}
                   required
                   autoComplete="new-password"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -157,11 +186,12 @@ export default function Signup() {
               )}
               {passwordsMatch && <p className="text-sm text-green-600">Passwords match ✔</p>}
 
-              {/* FUTURE BACKEND ERROR SLOT */}
-              {error && <p className="text-sm text-destructive">{error}</p>}
-
-              <Button type="submit" className="w-full" disabled={!passwordsMatch}>
-                Request Access 
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={!passwordsMatch || isLoading}
+              >
+                {isLoading ? "Creating Account..." : "Request Access"}
               </Button>
 
               <div className="text-sm text-muted-foreground text-center">
