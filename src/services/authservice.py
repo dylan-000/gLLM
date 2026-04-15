@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlalchemy import select
@@ -74,6 +74,21 @@ def verify_password(plain_password, hashed_password):
     return password_hash.verify(plain_password, hashed_password)
 
 
+def get_token_from_cookie(request: Request) -> str:
+    """
+    Extract JWT token from auth_token cookie.
+    This is used for authenticated endpoints that receive the token via HttpOnly cookie.
+    """
+    auth_token = request.cookies.get("auth_token")
+    if not auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return auth_token
+
+
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
@@ -130,6 +145,53 @@ async def get_current_user(
 async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
+    if current_user.role == UserRole.unauthorized:
+        raise HTTPException(status_code=401, detail="Unauthorized user.")
+    return current_user
+
+
+async def get_current_user_from_cookie(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Get current authenticated user from HttpOnly cookie.
+    This is used for API endpoints that receive authentication via cookie instead of Authorization header.
+    """
+    token = get_token_from_cookie(request)
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            token, Settings().AUTH_SECRET, algorithms=[Settings().HASH_ALGORITHM]
+        )
+        username = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+        user = get_user_from_identifier(identifier=token_data.username, db=db)
+    except InvalidTokenError:
+        raise credentials_exception
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error.",
+        )
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user_from_cookie(
+    current_user: Annotated[User, Depends(get_current_user_from_cookie)],
+):
+    """
+    Get current active user from cookie (authorized users only).
+    """
     if current_user.role == UserRole.unauthorized:
         raise HTTPException(status_code=401, detail="Unauthorized user.")
     return current_user
