@@ -110,7 +110,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=
 HASH_ALGORITHM=
 CHAINLIT_AUTH_SECRET=
 ```
-4. Now, in the project root, ensure your Docker Engine (e.g., Docker Desktop) is fully booted and running. Then run `docker compose up -d` (add `sudo` if on Linux) to compose up the project PostgreSQL database and ChromaDB containers respectively. 
+4. Now, in the project root, ensure your Docker Engine (e.g., Docker Desktop) is fully booted and running. Then run `docker-compose up -d` (add `sudo` if on Linux) to compose up the project PostgreSQL database and ChromaDB containers respectively. 
     *Troubleshooting Note:* On Windows, you might need to use `127.0.0.1` instead of `localhost` in your `DATABASE_URL` string inside `.env` to avoid IPv6 authentication errors. Additionally, ensure you don't have a native PostgreSQL Windows service already intercepting port 5432.
 5. If that went well, you now have the database and vector database up and running. You still need to *apply* the schema to the database because it doesn't have any tables as is.
 6. To apply the database schema to your fresh database, `cd` into `./src/schema/` and run `uv run alembic upgrade head`. Using `uv run` ensures the correct environment is executed even if you didn't manually activate it. If you have the right connection information in your `.env` variables, this should work.

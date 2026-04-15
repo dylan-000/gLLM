@@ -15,7 +15,7 @@ def get_container_status(service_name: str) -> bool:
     """Check if a specific docker compose service is running."""
     try:
         result = subprocess.run(
-            ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "ps", "--services", "--filter", "status=running"],
+            ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "ps", "--services", "--filter", "status=running"],
             cwd=ROOT_DIR,
             capture_output=True,
             text=True,
@@ -31,7 +31,7 @@ def start_container(service_name: str) -> bool:
     """Start a specific docker compose service."""
     try:
         subprocess.run(
-            ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "up", "-d", service_name],
+            ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "up", "-d", service_name],
             cwd=ROOT_DIR,
             check=True
         )
@@ -44,7 +44,7 @@ def stop_container(service_name: str) -> bool:
     """Stop a specific docker compose service."""
     try:
         subprocess.run(
-            ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "stop", service_name],
+            ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "stop", service_name],
             cwd=ROOT_DIR,
             check=True
         )
