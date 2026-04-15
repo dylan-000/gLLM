@@ -85,10 +85,15 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
         if not username:
             print("Username (sub) not found in token payload")
             return None
-
-        if datetime.now(timezone.utc) > datetime.fromtimestamp(expire_at, timezone.utc):
-            print("Token has expired")
+        elif datetime.now(timezone.utc) > datetime.fromtimestamp(
+            expire_at, timezone.utc
+        ):
             return None
+        user = get_user_from_identifier(identifier=username, db=db)
+    except InvalidTokenError:
+        return None
+    except Exception as e:
+        return None
 
         try:
             db_generator = get_db()
