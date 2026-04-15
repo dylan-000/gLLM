@@ -4,6 +4,7 @@ import time
 
 from chainlit.utils import mount_chainlit
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -16,6 +17,19 @@ from src.schema.models import UserRole
 
 
 app = FastAPI()
+
+# Configure CORS to allow credentials from frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(AuthRouter)
 app.include_router(
