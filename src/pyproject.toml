@@ -17,6 +17,7 @@ dependencies = [
     "langchain-milvus>=0.3.0",
     "langchain-openai>=1.1.7",
     "langchain-text-splitters>=1.1.1",
+    "langgraph>=1.0.9",
     "openai>=2.7.1",
     "psycopg2-binary>=2.9.11",
     "pwdlib[argon2]>=0.3.0",

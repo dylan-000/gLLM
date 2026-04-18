@@ -29,7 +29,7 @@ reaction_on_message_received = false
     sample_rate = 24000
 
 [features.mcp]
-    enabled = false
+    enabled = true
 
 [features.mcp.sse]
     enabled = true
@@ -39,7 +39,7 @@ reaction_on_message_received = false
 
 [features.mcp.stdio]
     enabled = true
-    allowed_executables = [ "npx", "uvx" ]
+    allowed_executables = [ "npx", "uvx", "uv", "python" ]
 
 [UI]
 name = "gLLM"
