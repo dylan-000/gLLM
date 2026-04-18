@@ -116,5 +116,6 @@ CHAINLIT_AUTH_SECRET=
 6. To apply the database schema to your fresh database, `cd` into `./src/schema/` and run `uv run alembic upgrade head`. Using `uv run` ensures the correct environment is executed even if you didn't manually activate it. If you have the right connection information in your `.env` variables, this should work.
 7. Now before we start the backend server to startup the llm interface, we're going to build the frontend so that our backend at least has something to serve at its root. `cd` into `./frontend/`.
 8. run `npm i` to install the dependencies.
-9. run `npm run build` to build the project.
-10. `cd` back into `./src/` and run `fastapi dev server.py --port 8001` to start the dev mode for the backend. It's important that we specify port 8001 because it would default to 8000 otherwise and conflict with the inference endpoints that we are expecting to be at that port.
+9. Set the port you want to use for local testing in the `.env.local` file. For example, `VITE_API_PORT=8004`. There should also be a `.env` file in the `./frontend/` directory for holding the default port at `VITE_API_PORT=8001`.
+10. run `npm run build` to build the project.
+11. `cd` back into `./src/` and run `fastapi dev server.py --port 8001` (or other port if 8001 is in use, make sure this is the same as `VITE_API_PORT` in your `.env.local` file) to start the dev mode for the backend. It's important that we specify port 8001 because it would default to 8000 otherwise and conflict with the inference endpoints that we are expecting to be at that port.
