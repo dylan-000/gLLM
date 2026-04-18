@@ -121,8 +121,28 @@ def logout(request: Request, response: Response):
     response.delete_cookie("my_cookie")
 
 
+@cl.set_chat_profiles
+async def chat_profile():
+    return [
+        cl.ChatProfile(
+            name="MATLAB",
+            markdown_description="Placeholder profile for **MATLAB**. The underlying LLM model will be specialized for MATLAB code and concepts.",
+        ),
+        cl.ChatProfile(
+            name="Python",
+            markdown_description="Placeholder profile for **Python**. The underlying LLM model will be specialized for Python scripting.",
+        ),
+        cl.ChatProfile(
+            name="Perovskite Solar Cells",
+            markdown_description="Placeholder profile for **Perovskite Solar Cells**. Exploring research and generation concerning Perovskite solar technologies.",
+        ),
+    ]
+
+
 @cl.on_chat_start
 def on_start():
+    chat_profile = cl.user_session.get("chat_profile")
+    
     cl.user_session.set(
         "message_history",
         [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
