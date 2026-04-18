@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
 SYSTEM_PROMPT = get_system()
-settings = {"model": "Qwen/Qwen3-VL-8B-Instruct", "temperature": 0.7}
+settings = {"model": "mistralai/Mistral-7B-v0.3", "temperature": 0.7}
 
 
 @cl.on_chat_resume
@@ -68,16 +68,9 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
             return None
 
         settings = Settings()
-        try:
-            payload = jwt.decode(
-                auth_token, settings.AUTH_SECRET, algorithms=[settings.HASH_ALGORITHM]
-            )
-        except jwt.ExpiredSignatureError:
-            print("Token has expired")
-            return None
-        except jwt.InvalidTokenError as e:
-            print(f"Invalid token: {e}")
-            return None
+        payload = jwt.decode(
+            auth_token, settings.AUTH_SECRET, algorithms=[settings.HASH_ALGORITHM]
+        )
 
         username = payload.get("sub")
         expire_at = payload.get("exp")
@@ -85,42 +78,40 @@ def header_auth_callback(headers: Dict) -> Optional[cl.User]:
         if not username:
             print("Username (sub) not found in token payload")
             return None
-        elif datetime.now(timezone.utc) > datetime.fromtimestamp(
-            expire_at, timezone.utc
-        ):
+        
+        if datetime.now(timezone.utc) > datetime.fromtimestamp(expire_at, timezone.utc):
+            print("Token has expired")
             return None
+
+        # Fetch user from database
+        db_generator = get_db()
+        db = next(db_generator)
         user = get_user_from_identifier(identifier=username, db=db)
-    except InvalidTokenError:
-        return None
-    except Exception as e:
-        return None
 
-        try:
-            db_generator = get_db()
-            db = next(db_generator)
-            user = get_user_from_identifier(identifier=username, db=db)
-
-            if not user:
-                print(f"User {username} not found in database")
-                return None
-
-            if user.role == UserRole.unauthorized:
-                print(f"User {username} is unauthorized")
-                return None
-
-            print(f"User {username} authenticated with role {user.role}")
-            return cl.User(
-                identifier=username,
-                metadata={"role": user.role.value, "email": user.email},
-            )
-        except Exception as e:
-            print(f"Error fetching user from database: {e}")
+        if not user:
+            print(f"User {username} not found in database")
             return None
 
+        if user.role == UserRole.unauthorized:
+            print(f"User {username} is unauthorized")
+            return None
+
+        print(f"User {username} authenticated with role {user.role}")
+        return cl.User(
+            identifier=username,
+            metadata={"role": user.role.value, "email": user.email},
+        )
+
+    except jwt.ExpiredSignatureError:
+        print("Token has expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        print(f"Invalid token: {e}")
+        return None
     except Exception as e:
         print(f"Unexpected error in header_auth_callback: {e}")
         return None
-
+    
 
 @cl.on_logout
 def logout(request: Request, response: Response):
