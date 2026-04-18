@@ -31,6 +31,7 @@ from src.schema.models import UserRole
 from src.services.ragutils import ingestion
 from src.services.ragutils import retrieval
 from datetime import datetime, timezone
+from src.tools.core_tools import TOOL_REGISTRY, get_regular_tools
 
 
 # client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
@@ -199,6 +200,8 @@ def on_start():
         "message_history",
         [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
     )
+    cl.user_session.set("regular_tools", get_regular_tools())
+    cl.user_session.set("mcp_tools", {})
 
 
 @cl.on_chat_resume
@@ -231,6 +234,7 @@ async def on_message(cl_msg: cl.Message):
     user_id = user.identifier if user else "anonymous"
     thread_id = cl.context.session.thread_id
 
+    regular_tools = cl.user_session.get("regular_tools", [])
     mcp_tools = cl.user_session.get("mcp_tools", {})
     flat_tools = flatten([tools for _, tools in mcp_tools.items()]) + regular_tools
 
@@ -416,14 +420,18 @@ async def call_tool(tool_use):
 
     current_step = cl.context.current_step
     current_step.name = tool_name
-    
-    if tool_name == "render_pdf":
-        result = await render_pdf(
-            url=tool_input.get("url"),
-            name=tool_input.get("name", "Document")
-        )
-        current_step.output = result
-        return current_step.output
+
+    if tool_name in TOOL_REGISTRY:
+        try:
+            tool_function = TOOL_REGISTRY[tool_name]["function"]
+            result = await tool_function(**tool_input)
+            current_step.output = result
+            return current_step.output
+        except Exception as e:
+            current_step.output = json.dumps(
+                {"error": f"Error executing {tool_name}: {str(e)}"}
+            )
+            return current_step.output
 
     mcp_tools = cl.user_session.get("mcp_tools", {})
     mcp_name = None
