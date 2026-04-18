@@ -20,6 +20,7 @@ from src.schema.models import UserRole
 from src.services.ragutils import ingestion
 from src.services.ragutils import retrieval
 from datetime import datetime, timezone
+from src.tools.core_tools import TOOL_REGISTRY, get_regular_tools
 
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
@@ -27,41 +28,6 @@ cl.instrument_openai()
 SYSTEM_PROMPT = get_system()
 settings = {"model": "google/gemma-4-E4B-it", "temperature": 0.7}
 
-render_pdf_schema = {
-    "name": "render_pdf",
-    "description": "Renders a remote PDF document in the chat interface so the user can read it. Use this when the user asks to view or read a PDF from a given URL.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "url": {
-                "type": "string",
-                "description": "The remote URL of the PDF to render."
-            },
-            "name": {
-                "type": "string",
-                "description": "A descriptive name for the PDF document."
-            }
-        },
-        "required": ["url", "name"]
-    }
-}
-
-async def render_pdf(url: str, name: str) -> str:
-    """Takes a remote PDF URL and renders it in the Chainlit UI."""
-    try:
-        pdf_element = cl.Pdf(name=name, url=url, display='side')
-        
-        # Send the PDF as an element in a new message
-        await cl.Message(
-            content=f"Rendering PDF: **{name}**",
-            elements=[pdf_element]
-        ).send()
-        
-        return f"Successfully rendered PDF '{name}' in the chat."
-    except Exception as e:
-        return f"Failed to render PDF: {str(e)}"
-
-regular_tools = [render_pdf_schema]
 
 @cl.on_chat_resume
 async def on_chat_resume(thread: ThreadDict):
@@ -156,6 +122,8 @@ def on_start():
         "message_history",
         [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
     )
+    cl.user_session.set("regular_tools", get_regular_tools())
+    cl.user_session.set("mcp_tools", {})
 
 
 @cl.on_chat_resume
@@ -187,6 +155,7 @@ async def on_message(cl_msg: cl.Message):
     user = cl.user_session.get("user")
     user_id = user.identifier if user else "anonymous"
 
+    regular_tools = cl.user_session.get("regular_tools", [])
     mcp_tools = cl.user_session.get("mcp_tools", {})
     flat_tools = flatten([tools for _, tools in mcp_tools.items()]) + regular_tools
 
@@ -353,14 +322,18 @@ async def call_tool(tool_use):
 
     current_step = cl.context.current_step
     current_step.name = tool_name
-    
-    if tool_name == "render_pdf":
-        result = await render_pdf(
-            url=tool_input.get("url"),
-            name=tool_input.get("name", "Document")
-        )
-        current_step.output = result
-        return current_step.output
+
+    if tool_name in TOOL_REGISTRY:
+        try:
+            tool_function = TOOL_REGISTRY[tool_name]["function"]
+            result = await tool_function(**tool_input)
+            current_step.output = result
+            return current_step.output
+        except Exception as e:
+            current_step.output = json.dumps(
+                {"error": f"Error executing {tool_name}: {str(e)}"}
+            )
+            return current_step.output
 
     mcp_tools = cl.user_session.get("mcp_tools", {})
     mcp_name = None
