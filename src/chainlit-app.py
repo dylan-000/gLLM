@@ -31,7 +31,12 @@ settings = {"model": "google/gemma-4-E4B-it", "temperature": 0.7}
 
 @cl.on_chat_resume
 async def on_chat_resume(thread: ThreadDict):
-    cl.user_session.set("message_history", [])
+    cl.user_session.set(
+        "message_history",
+        [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
+    )
+    cl.user_session.set("regular_tools", get_regular_tools())
+    cl.user_session.set("mcp_tools", {})
 
     for message in thread["steps"]:
         if message["type"] == "user_message":
@@ -42,6 +47,23 @@ async def on_chat_resume(thread: ThreadDict):
             cl.user_session.get("message_history").append(
                 {"role": "assistant", "content": message["output"]}
             )
+        else:
+            try:
+                output = json.loads(message.get("output") or "{}")
+                if (
+                    isinstance(output, dict)
+                    and output.get("status") == "rendered"
+                    and output.get("url")
+                ):
+                    pdf_element = cl.Pdf(
+                        name=output["name"], url=output["url"], display="side"
+                    )
+                    await cl.Message(
+                        content=f"Rendering PDF: **{output['name']}**",
+                        elements=[pdf_element],
+                    ).send()
+            except (json.JSONDecodeError, TypeError):
+                pass
 
 
 @cl.header_auth_callback
@@ -124,21 +146,6 @@ def on_start():
     )
     cl.user_session.set("regular_tools", get_regular_tools())
     cl.user_session.set("mcp_tools", {})
-
-
-@cl.on_chat_resume
-async def on_chat_resume(thread: ThreadDict):
-    cl.user_session.set("message_history", [])
-
-    for message in thread["steps"]:
-        if message["type"] == "user_message":
-            cl.user_session.get("message_history").append(
-                {"role": "user", "content": message["output"]}
-            )
-        elif message["type"] == "assistant_message":
-            cl.user_session.get("message_history").append(
-                {"role": "assistant", "content": message["output"]}
-            )
 
 
 @cl.on_logout
@@ -322,6 +329,7 @@ async def call_tool(tool_use):
 
     current_step = cl.context.current_step
     current_step.name = tool_name
+    current_step.input = json.dumps(tool_input)
 
     if tool_name in TOOL_REGISTRY:
         try:
