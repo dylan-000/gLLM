@@ -8,7 +8,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-BASE_MODEL = os.getenv("MODEL", "google/gemma-4-E4B-it")
+BASE_MODEL = os.getenv("MODEL", "Qwen/Qwen2.5-7B-Instruct")
+SERVED_MODEL_NAME = os.getenv("SERVED_MODEL_NAME", BASE_MODEL)
 
 import chainlit as cl
 from chainlit.types import ThreadDict
@@ -32,7 +33,7 @@ from datetime import datetime, timezone
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
 SYSTEM_PROMPT = get_system()
-settings = {"model": "Qwen/Qwen3-VL-8B-Instruct", "temperature": 0.7}
+settings = {"model": "Qwen/Qwen2.5-7B-Instruct", "temperature": 0.7}
 
 
 @cl.on_chat_resume
@@ -134,8 +135,8 @@ def logout(request: Request, response: Response):
 async def chat_profile(current_user: Optional[cl.User] = None):
     profiles = [
         cl.ChatProfile(
-            name=BASE_MODEL,
-            markdown_description=f"Base Model: **{BASE_MODEL}**. Default model with no LoRA adapter.",
+            name=SERVED_MODEL_NAME,
+            markdown_description=f"Base model ({BASE_MODEL}) with no LoRA adapter.",
         )
     ]
     
@@ -242,7 +243,7 @@ async def on_message(cl_msg: cl.Message):
     msg = cl.Message(content="")
 
     profile_name = cl.user_session.get("chat_profile")
-    target_model = profile_name if profile_name and profile_name != BASE_MODEL else BASE_MODEL
+    target_model = profile_name if profile_name and profile_name != SERVED_MODEL_NAME else SERVED_MODEL_NAME
     
     current_settings = settings.copy()
     current_settings["model"] = target_model

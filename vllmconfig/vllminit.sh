@@ -16,6 +16,7 @@ sudo docker run --runtime nvidia --gpus all \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   --env "LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/usr/local/nvidia/lib64:/usr/local/nvidia/lib" \
   --env "HUGGING_FACE_HUB_TOKEN=$HF_TOKEN" \
+  --env "VLLM_ALLOW_RUNTIME_LORA_UPDATING=True" \
   -p $PORT:8000 \
   --ipc=host \
   vllm/vllm-openai:latest \
@@ -23,7 +24,7 @@ sudo docker run --runtime nvidia --gpus all \
   --model $MODEL \
   --host 0.0.0.0 \
   --trust-remote-code \
-  --served-model-name $MODEL \
+  --served-model-name "$SERVED_MODEL_NAME" \
   --swap-space 0 \
   --dtype $dtype \
   --gpu-memory-utilization $GPU_MEMORY_UTILIZATION \
