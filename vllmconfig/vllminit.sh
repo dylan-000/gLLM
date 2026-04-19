@@ -19,6 +19,7 @@ sudo docker run --runtime nvidia --gpus all \
   -p $PORT:8000 \
   --ipc=host \
   vllm/vllm-openai:latest \
+  --enable-lora \
   --model $MODEL \
   --host 0.0.0.0 \
   --trust-remote-code \
