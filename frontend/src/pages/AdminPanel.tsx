@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Database, Activity, Search } from "lucide-react";
+import { ArrowLeft, Users, Database } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
-import { Input } from "../components/ui/input";
 import { adminService, type ContainerStatus } from "../services/adminService";
 
 export default function AdminPanel() {
@@ -64,12 +63,6 @@ export default function AdminPanel() {
               Admin Console
             </h1>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search logs..." className="pl-9 w-64 h-9" />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -80,21 +73,13 @@ export default function AdminPanel() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <AdminStatCard
             title="Total Users"
-            value="142"
-            desc="+12 this week"
+            value="3"
             icon={<Users className="h-5 w-5 text-blue-500" />}
           />
           <AdminStatCard
-            title="Active Containers"
-            value="8/10"
-            desc="Operating normally"
+            title="Current Active Containers"
+            value="vLLM"
             icon={<Database className="h-5 w-5 text-green-500" />}
-          />
-          <AdminStatCard
-            title="Error Rate"
-            value="0.4%"
-            desc="Last 24 hours"
-            icon={<Activity className="h-5 w-5 text-orange-500" />}
           />
         </div>
 

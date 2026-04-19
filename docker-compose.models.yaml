@@ -14,17 +14,19 @@ services:
       - ~/.cache/huggingface:/root/.cache/huggingface
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      - VLLM_ALLOW_RUNTIME_LORA_UPDATING=True
     ports:
       - "${PORT:-8000}:8000"
     ipc: host
     command: >
-      --model ${MODEL:-Qwen/Qwen2.5-Coder-7B-Instruct}
+      --enable-lora
+      --model $MODEL
       --host 0.0.0.0
       --trust-remote-code
-      --served-model-name ${MODEL:-Qwen/Qwen2.5-Coder-7B-Instruct}
+      --served-model-name $MODEL
       --swap-space 0
-      --dtype ${dtype:-auto}
-      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.9}
+      --dtype $dtype
+      --gpu-memory-utilization $GPU_MEMORY_UTILIZATION
       --max-model-len 32768
 
   unsloth:

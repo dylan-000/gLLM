@@ -1,5 +1,14 @@
 import base64
 from typing import Dict, Optional
+import urllib.request
+import urllib.error
+import json
+import httpx
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+BASE_MODEL = os.getenv("MODEL", "google/gemma-4-E4B-it")
 
 import chainlit as cl
 from chainlit.types import ThreadDict
@@ -122,31 +131,66 @@ def logout(request: Request, response: Response):
 
 
 @cl.set_chat_profiles
-async def chat_profile():
-    return [
+async def chat_profile(current_user: Optional[cl.User] = None):
+    profiles = [
         cl.ChatProfile(
-            name="MATLAB",
-            markdown_description="Placeholder profile for **MATLAB**. The underlying LLM model will be specialized for MATLAB code and concepts.",
-        ),
-        cl.ChatProfile(
-            name="Python",
-            markdown_description="Placeholder profile for **Python**. The underlying LLM model will be specialized for Python scripting.",
-        ),
-        cl.ChatProfile(
-            name="Perovskite Solar Cells",
-            markdown_description="Placeholder profile for **Perovskite Solar Cells**. Exploring research and generation concerning Perovskite solar technologies.",
-        ),
+            name=BASE_MODEL,
+            markdown_description=f"Base Model: **{BASE_MODEL}**. Default model with no LoRA adapter.",
+        )
     ]
+    
+    url = "https://huggingface.co/api/collections/nateenglert04/gllm-lora-adapaters-69e30bddbcc2181a634a925f"
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers={'User-Agent': 'Chainlit-App'}, timeout=5.0)
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get('items', [])
+                for item in items:
+                    if item.get("type") == "model":
+                        repo_id = item.get("id")
+                        if repo_id:
+                            profiles.append(
+                                cl.ChatProfile(
+                                    name=repo_id,
+                                    markdown_description=f"LoRA Adapter: **{repo_id}** dynamically loaded from Hugging Face.",
+                                )
+                            )
+    except Exception as e:
+        print(f"Error fetching HF collection: {e}")
+        
+
+        
+    return profiles
 
 
 @cl.on_chat_start
-def on_start():
+async def on_start():
     chat_profile = cl.user_session.get("chat_profile")
     
     cl.user_session.set(
         "message_history",
         [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
     )
+    
+    if chat_profile and chat_profile != BASE_MODEL:
+        print(f"Loading LoRA adapter: {chat_profile}")
+        try:
+            async with httpx.AsyncClient() as c:
+                res = await c.post(
+                    "http://localhost:8000/v1/load_lora_adapter",
+                    json={
+                        "lora_name": chat_profile,
+                        "lora_path": chat_profile
+                    },
+                    timeout=30.0
+                )
+                if res.status_code != 200:
+                    print(f"Error loading LoRA: {res.text}")
+                else:
+                    print(f"Successfully loaded LoRA: {chat_profile}")
+        except Exception as e:
+            print(f"Failed to trigger LoRA load: {e}")
 
 
 @cl.on_message
@@ -197,8 +241,14 @@ async def on_message(cl_msg: cl.Message):
 
     msg = cl.Message(content="")
 
+    profile_name = cl.user_session.get("chat_profile")
+    target_model = profile_name if profile_name and profile_name != BASE_MODEL else BASE_MODEL
+    
+    current_settings = settings.copy()
+    current_settings["model"] = target_model
+
     stream = await client.chat.completions.create(
-        messages=message_history, stream=True, **settings
+        messages=message_history, stream=True, **current_settings
     )
 
     async for part in stream:
