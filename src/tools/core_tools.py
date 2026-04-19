@@ -1,5 +1,6 @@
 """Core tools for the Chainlit application using Registry Pattern."""
 
+import json
 import chainlit as cl
 
 
@@ -27,15 +28,13 @@ async def render_pdf(url: str, name: str) -> str:
     """Takes a remote PDF URL and renders it in the Chainlit UI."""
     try:
         pdf_element = cl.Pdf(name=name, url=url, display="side")
-
-        # Send the PDF as an element in a new message
         await cl.Message(
             content=f"Rendering PDF: **{name}**", elements=[pdf_element]
         ).send()
-
-        return f"Successfully rendered PDF '{name}' in the chat."
+        # Return structured JSON so on_chat_resume can reconstruct the element
+        return json.dumps({"status": "rendered", "name": name, "url": url})
     except Exception as e:
-        return f"Failed to render PDF: {str(e)}"
+        return json.dumps({"status": "error", "error": str(e)})
 
 
 # Registry mapping tool names to their schemas and executable functions
