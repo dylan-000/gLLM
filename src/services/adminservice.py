@@ -9,7 +9,7 @@ from src.schema.models import User, UserRole
 from src.db.database import get_db
 
 
-def get_users(self, db: Session) -> list[User]:
+def get_users(db: Session) -> list[User]:
     """
     Returns all users.
 
