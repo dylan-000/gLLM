@@ -1,8 +1,8 @@
 export enum UserRole {
   ADMIN = 'admin',
-  FINETUNER = 'finetuner',
-  REGUSER = 'reguser',
-  RETIREDUSER = 'retireduser',
+  FINETUNER = 'fine_tuner',
+  REGUSER = 'normal',
+  RETIREDUSER = 'unauthorized',
 }
 
 export interface User {
