@@ -1,0 +1,10 @@
+services:
+  vllm:
+    image: alpine:latest
+    container_name: vllm
+    command: tail -f /dev/null
+
+  unsloth:
+    image: alpine:latest
+    container_name: unsloth
+    command: tail -f /dev/null

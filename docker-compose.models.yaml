@@ -1,0 +1,50 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      - VLLM_ALLOW_RUNTIME_LORA_UPDATING=True
+    ports:
+      - "${PORT:-8000}:8000"
+    ipc: host
+    command: >
+      --enable-lora
+      --model $MODEL
+      --host 0.0.0.0
+      --trust-remote-code
+      --served-model-name $SERVED_MODEL_NAME
+      --swap-space 0
+      --dtype $dtype
+      --gpu-memory-utilization $GPU_MEMORY_UTILIZATION
+      --max-model-len 32768
+
+  unsloth:
+    image: unsloth/unsloth:latest
+    container_name: unsloth
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    ports:
+      - "8002:8000"
+    ipc: host
+    command: jupyter lab --ip=0.0.0.0 --port=8000 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''

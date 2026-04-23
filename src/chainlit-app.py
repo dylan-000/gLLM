@@ -1,9 +1,11 @@
 import base64
 from typing import Dict, Optional
-
+import urllib.request
+import urllib.error
+import json
+import httpx
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
 import chainlit as cl
@@ -30,10 +32,14 @@ from src.services.ragutils import retrieval
 from datetime import datetime, timezone
 from src.tools.core_tools import TOOL_REGISTRY, get_regular_tools
 
+from huggingface_hub import snapshot_download
+from safetensors.torch import load_file, save_file
+import asyncio
+import shutil
 
 SYSTEM_PROMPT = get_system()
 settings = {"model": "gLLM Default", "temperature": 0.7}
-
+BASE_MODEL = settings["model"]
 VLLM_BASE_URL = os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1")
 
 
@@ -205,6 +211,136 @@ def logout(request: Request, response: Response):
     response.delete_cookie("my_cookie")
 
 
+@cl.set_chat_profiles
+async def chat_profile(current_user: Optional[cl.User] = None):
+    profiles = [
+        cl.ChatProfile(
+            name=BASE_MODEL,
+            markdown_description=f"Base model ({BASE_MODEL}) with no LoRA adapter.",
+        )
+    ]
+    
+    # Change this to another user's collection for future development (for different developers) or explore other options
+    url = "https://huggingface.co/api/collections/nateenglert04/gllm-lora-adapaters-69e30bddbcc2181a634a925f"
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers={'User-Agent': 'Chainlit-App'}, timeout=5.0)
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get('items', [])
+                for item in items:
+                    if item.get("type") == "model":
+                        repo_id = item.get("id")
+                        if repo_id:
+                            profiles.append(
+                                cl.ChatProfile(
+                                    name=repo_id,
+                                    markdown_description=f"LoRA Adapter: **{repo_id}** dynamically loaded from Hugging Face.",
+                                )
+                            )
+    except Exception as e:
+        print(f"Error fetching HF collection: {e}")
+        
+    return profiles
+
+
+lora_download_locks = {}
+
+@cl.on_chat_start
+async def on_start():
+    chat_profile = cl.user_session.get("chat_profile")
+    
+    cl.user_session.set(
+        "message_history",
+        [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
+    )
+    
+    if chat_profile and chat_profile != BASE_MODEL:
+        # Create a lock for this specific model if it doesn't exist yet
+        if chat_profile not in lora_download_locks:
+            lora_download_locks[chat_profile] = asyncio.Lock()
+        
+        async with lora_download_locks[chat_profile]:
+            print(f"Loading LoRA adapter: {chat_profile}")
+            try:
+                def filter_safetensors(path):
+                    try:
+                        tensors = load_file(path)
+                        unsupported_layers = ["embed_tokens", "lm_head"]
+                        filtered_tensors = {}
+                        for key, tensor in tensors.items():
+                            if "lora" in key and not any(bad_layer in key for bad_layer in unsupported_layers):
+                                filtered_tensors[key] = tensor
+                                
+                        # If we successfully removed the bad layers, save the file back
+                        if len(filtered_tensors) < len(tensors):
+                            save_file(filtered_tensors, path)
+                            print(f"Successfully stripped unsupported layers from {os.path.basename(path)}")
+                            
+                    except Exception as e:
+                        print(f"Error filtering safetensors {path}: {e}")
+
+                def patch_lora():
+                    local_dir = snapshot_download(repo_id=chat_profile)
+                    patched_dir = os.path.expanduser(f"~/.cache/huggingface/patched_loras/{chat_profile.replace('/', '_')}")
+                    os.makedirs(patched_dir, exist_ok=True)
+                    for item in os.listdir(local_dir):
+                        s = os.path.join(local_dir, item)
+                        d = os.path.join(patched_dir, item)
+                        if os.path.isdir(s) and not os.path.exists(d):
+                            shutil.copytree(s, d)
+                        elif not os.path.isdir(s) and not os.path.exists(d):
+                            shutil.copy2(s, d)
+                    
+                    config_path = os.path.join(patched_dir, "adapter_config.json")
+                    if os.path.exists(config_path):
+                        with open(config_path, "r") as f:
+                            config = json.load(f)
+                        
+                        # Nullify modules_to_save
+                        if config.get("modules_to_save") is not None:
+                            config["modules_to_save"] = None
+                            
+                        # Filter target_modules to only include what vLLM supports
+                        if isinstance(config.get("target_modules"), list):
+                            supported_modules = {'k_proj', 'up_proj', 'down_proj', 'gate_proj', 'q_proj', 'v_proj', 'o_proj'}
+                            config["target_modules"] = [m for m in config["target_modules"] if m in supported_modules]
+
+                        with open(config_path, "w") as f:
+                            json.dump(config, f, indent=2)
+
+                    for item in os.listdir(patched_dir):
+                        if item.endswith(".safetensors"):
+                            safetensors_path = os.path.join(patched_dir, item)
+                            try:
+                                filter_safetensors(safetensors_path)
+                            except Exception as e:
+                                print(f"Error filtering safetensors {item}: {e}")
+
+                    return f"/root/.cache/huggingface/patched_loras/{chat_profile.replace('/', '_')}"
+
+                lora_path_container = await asyncio.to_thread(patch_lora)
+
+                # Load the LoRA adapter into vLLM
+                async with httpx.AsyncClient() as c:
+                    res = await c.post(
+                        "http://localhost:8000/v1/load_lora_adapter",
+                        json={
+                            "lora_name": chat_profile,
+                            "lora_path": lora_path_container
+                        },
+                        timeout=30.0
+                    )
+                    
+                    # Check for successful load or if it's already loaded
+                    if res.status_code == 200:
+                        print(f"Successfully loaded LoRA: {chat_profile}")
+                    elif res.status_code == 400 and "already been loaded" in res.text:
+                        print(f"LoRA {chat_profile} is already active in vLLM.")
+                    else:
+                        print(f"Error loading LoRA: {res.text}")
+            except Exception as e:
+                print(f"Failed to trigger LoRA load: {e}")
 def flatten(xss):
     return [x for xs in xss for x in xs]
 
@@ -288,18 +424,22 @@ async def on_message(cl_msg: cl.Message):
     message_history.append(message)
 
     msg = cl.Message(content="")
+
+    profile_name = cl.user_session.get("chat_profile")
+    target_model = profile_name if profile_name and profile_name != BASE_MODEL else BASE_MODEL
     await msg.send()
 
     client = cl.user_session.get("llm_client")
     lf_pk = cl.user_session.get("langfuse_public_key")
 
     kwargs = settings.copy()
+    kwargs["model"] = target_model
 
     if openai_tools:
         kwargs["tools"] = openai_tools
 
-    stream = await _call_llm(
-        client, message_history, kwargs, user_id=user_id, thread_id=thread_id, lf_pk=lf_pk
+    stream = await client.chat.completions.create(
+        messages=message_history, stream=True, **settings
     )
 
     tool_calls = []
