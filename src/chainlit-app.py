@@ -9,9 +9,8 @@ load_dotenv()
 import chainlit as cl
 from chainlit.types import ThreadDict
 
-from langfuse import Langfuse
-from langfuse import get_client, observe, propagate_attributes
-from openai import AsyncOpenAI
+from langfuse import Langfuse, propagate_attributes
+from langfuse.openai import AsyncOpenAI
 
 from jwt.exceptions import InvalidTokenError
 from fastapi import Request, Response
@@ -210,21 +209,16 @@ def flatten(xss):
     return [x for xs in xss for x in xs]
 
 
-@observe()
-async def _call_llm(client, message_history, kwargs, user_id=None, thread_id=None):
-    if cl.user_session.get("is_langfuse_enabled"):
-        langfuse = get_client()  # v3: get global client instance
-        langfuse.update_current_trace(
-            name="RAG_Generation",
-            tags=["rag-pipeline"],
-        )
-
+async def _call_llm(client, message_history, kwargs, user_id=None, thread_id=None, lf_pk=None):
+    """Wraps the LLM call with Langfuse session/user context via propagate_attributes (SDK v4)."""
+    lf_kwargs = {"langfuse_public_key": lf_pk} if lf_pk else {}
     with propagate_attributes(
-        user_id=user_id,
         session_id=thread_id,
+        user_id=user_id,
+        tags=["rag-pipeline"],
     ):
         return await client.chat.completions.create(
-            messages=message_history, stream=True, **kwargs
+            messages=message_history, stream=True, **kwargs, **lf_kwargs
         )
 
 
@@ -297,6 +291,7 @@ async def on_message(cl_msg: cl.Message):
     await msg.send()
 
     client = cl.user_session.get("llm_client")
+    lf_pk = cl.user_session.get("langfuse_public_key")
 
     kwargs = settings.copy()
 
@@ -304,7 +299,7 @@ async def on_message(cl_msg: cl.Message):
         kwargs["tools"] = openai_tools
 
     stream = await _call_llm(
-        client, message_history, kwargs, user_id=user_id, thread_id=thread_id
+        client, message_history, kwargs, user_id=user_id, thread_id=thread_id, lf_pk=lf_pk
     )
 
     tool_calls = []
@@ -363,7 +358,7 @@ async def on_message(cl_msg: cl.Message):
             )
 
         second_stream = await _call_llm(
-            client, message_history, kwargs, user_id=user_id, thread_id=thread_id
+            client, message_history, kwargs, user_id=user_id, thread_id=thread_id, lf_pk=lf_pk
         )
 
         async for part in second_stream:
