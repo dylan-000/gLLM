@@ -81,7 +81,7 @@ export async function logout(): Promise<void> {
 }
 
 
-export async function updateLangfuseConfig(keys: { langfuse_public_key: string, langfuse_secret_key: string }) {
+export async function updateLangfuseConfig(keys: { langfuse_public_key: any, langfuse_secret_key?: any }) {
   const response = await apiClient.put("/auth/me/langfuse", keys);
   return response.data;
 }

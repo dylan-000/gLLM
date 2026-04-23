@@ -7,6 +7,7 @@ from sqlalchemy import engine_from_config, pool
 # for 'autogenerate' support
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parents[3]))  # don't touch this
 
 from src.core.config import Settings

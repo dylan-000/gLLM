@@ -141,13 +141,11 @@ async def read_users_me(
 async def update_langfuse_config(
     config: LangfuseConfigUpdate,
     current_user: User = Depends(get_current_active_user_from_cookie),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     update_data: dict = {}
     if config.langfuse_public_key is not None:
-        update_data["langfuse_public_key"] = (
-            config.langfuse_public_key.strip() or None
-        )
+        update_data["langfuse_public_key"] = config.langfuse_public_key.strip() or None
     if config.langfuse_secret_key is not None and config.langfuse_secret_key.strip():
         update_data["langfuse_secret_key"] = config.langfuse_secret_key.strip()
     updated_user = update_user(current_user.id, update_data, db)
