@@ -137,11 +137,12 @@ def logout(request: Request, response: Response):
 async def chat_profile(current_user: Optional[cl.User] = None):
     profiles = [
         cl.ChatProfile(
-            name=SERVED_MODEL_NAME,
+            name=BASE_MODEL,
             markdown_description=f"Base model ({BASE_MODEL}) with no LoRA adapter.",
         )
     ]
     
+    # Change this to another user's collection for future development (for different developers) or explore other options
     url = "https://huggingface.co/api/collections/nateenglert04/gllm-lora-adapaters-69e30bddbcc2181a634a925f"
     try:
         async with httpx.AsyncClient() as client:
@@ -161,8 +162,6 @@ async def chat_profile(current_user: Optional[cl.User] = None):
                             )
     except Exception as e:
         print(f"Error fetching HF collection: {e}")
-        
-
         
     return profiles
 
@@ -244,6 +243,7 @@ async def on_start():
 
                 lora_path_container = await asyncio.to_thread(patch_lora)
 
+                # Load the LoRA adapter into vLLM
                 async with httpx.AsyncClient() as c:
                     res = await c.post(
                         "http://localhost:8000/v1/load_lora_adapter",
@@ -254,7 +254,7 @@ async def on_start():
                         timeout=30.0
                     )
                     
-                    # Check for successful load OR if it's already loaded
+                    # Check for successful load or if it's already loaded
                     if res.status_code == 200:
                         print(f"Successfully loaded LoRA: {chat_profile}")
                     elif res.status_code == 400 and "already been loaded" in res.text:
@@ -314,7 +314,7 @@ async def on_message(cl_msg: cl.Message):
     msg = cl.Message(content="")
 
     profile_name = cl.user_session.get("chat_profile")
-    target_model = profile_name if profile_name and profile_name != SERVED_MODEL_NAME else SERVED_MODEL_NAME
+    target_model = profile_name if profile_name and profile_name != BASE_MODEL else BASE_MODEL
     
     current_settings = settings.copy()
     current_settings["model"] = target_model
