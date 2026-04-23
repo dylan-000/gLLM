@@ -191,21 +191,6 @@ async def on_chat_resume(thread: ThreadDict):
             except (json.JSONDecodeError, TypeError):
                 pass
 
-
-@cl.on_chat_start
-def on_start():
-
-    user = cl.user_session.get("user")
-    setup_session_client(user)
-
-    cl.user_session.set(
-        "message_history",
-        [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
-    )
-    cl.user_session.set("regular_tools", get_regular_tools())
-    cl.user_session.set("mcp_tools", {})
-
-
 @cl.on_logout
 def logout(request: Request, response: Response):
     response.delete_cookie("my_cookie")
@@ -248,6 +233,17 @@ lora_download_locks = {}
 
 @cl.on_chat_start
 async def on_start():
+
+    user = cl.user_session.get("user")
+    setup_session_client(user)
+
+    cl.user_session.set(
+        "message_history",
+        [{"content": f"{SYSTEM_PROMPT}", "role": "system"}],
+    )
+    cl.user_session.set("regular_tools", get_regular_tools())
+    cl.user_session.set("mcp_tools", {})
+    
     chat_profile = cl.user_session.get("chat_profile")
     
     cl.user_session.set(
@@ -438,8 +434,8 @@ async def on_message(cl_msg: cl.Message):
     if openai_tools:
         kwargs["tools"] = openai_tools
 
-    stream = await client.chat.completions.create(
-        messages=message_history, stream=True, **settings
+    stream = await _call_llm(
+        client, message_history, kwargs, user_id=user_id, thread_id=thread_id, lf_pk=lf_pk
     )
 
     tool_calls = []
