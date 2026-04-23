@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 from src.schema.models import User
 from src.db.database import engine, get_db
 from src.models.auth import Token
-from src.models.user import UserCreate, UserResponse
+from src.models.user import LangfuseConfigUpdate, UserCreate, UserResponse
+from src.models.user import user_response_from_orm
+from src.services.adminservice import update_user
 from src.services.authservice import (
     login_user,
     signup_user,
@@ -132,13 +134,23 @@ async def read_users_me(
 
     Returns: 401 Unauthorized if cookie missing or invalid
     """
-    user_out = UserResponse(
-        identifier=current_user.identifier,
-        id=current_user.id,
-        role=current_user.role,
-        firstname=current_user.firstname,
-        lastname=current_user.lastname,
-        email=current_user.email,
-        createdAt=current_user.createdAt,
-    )
-    return user_out
+    return user_response_from_orm(current_user)
+
+
+@AuthRouter.put("/me/langfuse", response_model=UserResponse)
+async def update_langfuse_config(
+    config: LangfuseConfigUpdate,
+    current_user: User = Depends(get_current_active_user_from_cookie),
+    db: Session = Depends(get_db)
+):
+    update_data: dict = {}
+    if config.langfuse_public_key is not None:
+        update_data["langfuse_public_key"] = (
+            config.langfuse_public_key.strip() or None
+        )
+    if config.langfuse_secret_key is not None and config.langfuse_secret_key.strip():
+        update_data["langfuse_secret_key"] = config.langfuse_secret_key.strip()
+    updated_user = update_user(current_user.id, update_data, db)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user_response_from_orm(updated_user)

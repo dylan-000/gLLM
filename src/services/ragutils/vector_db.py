@@ -12,9 +12,9 @@ class VectorDB(ABC):
         pass
 
     @abstractmethod
-    def search(self, query, user_id, n_results=5):
+    def search(self, query, user_id, thread_id, n_results=5):
         """
-        Search strictly scoped to the user_id.
+        Search strictly scoped to the user_id and thread_id.
         """
         pass
 
@@ -39,12 +39,12 @@ class ChromaDB(VectorDB):
         """
         self.collection.upsert(ids=ids, documents=chunks, metadatas=metadatas)
 
-    def search(self, query, user_id, n_results=5):
+    def search(self, query, user_id, thread_id, n_results=5):
         """
-        Search strictly scoped to the user_id.
+        Search strictly scoped to the user_id and thread_id.
         """
         return self.collection.query(
-            query_texts=[query], n_results=n_results, where={"user_id": user_id}
+            query_texts=[query], n_results=n_results, where={"$and": [{"user_id": user_id}, {"thread_id": thread_id}]}
         )
 
     def delete_file(self, file_id):

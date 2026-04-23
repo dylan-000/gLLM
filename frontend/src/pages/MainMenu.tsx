@@ -1,18 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Settings, Shield, Terminal, LogOut, Menu, LayoutDashboard, Moon, Sun } from "lucide-react";
+import { MessageSquare, Settings, Shield, Terminal, LogOut, Menu, LayoutDashboard, Moon, Sun, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { UserRole } from "../models/User";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
-import { logout } from "@/services/authService";
+import { logout, updateLangfuseConfig } from "@/services/authService";
 
 export default function MainMenu() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refetch } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { theme, toggleTheme } = useTheme(); 
+
+  const [showLangfuseConfig, setShowLangfuseConfig] = useState(false);
+  const [langfusePk, setLangfusePk] = useState("");
+  const [langfuseSk, setLangfuseSk] = useState("");
+  const [isSavingKeys, setIsSavingKeys] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.langfuse_public_key) {
+      setLangfusePk(user.langfuse_public_key);
+    }
+    if (!user.langfuse_secret_key_set) {
+      setLangfuseSk("");
+    }
+  }, [user]);
+
+  const canSaveLangfuse =
+    Boolean(langfusePk.trim()) &&
+    (Boolean(langfuseSk.trim()) || Boolean(user?.langfuse_secret_key_set));
+
+  const handleSaveLangfuse = async () => {
+    setIsSavingKeys(true);
+    try {
+      const payload: {
+        langfuse_public_key: string
+        langfuse_secret_key?: string
+      } = { langfuse_public_key: langfusePk.trim() };
+      if (langfuseSk.trim()) {
+        payload.langfuse_secret_key = langfuseSk.trim();
+      }
+      await updateLangfuseConfig(payload);
+      await refetch();
+      alert("Telemetry keys saved! Open Chat again so Chainlit picks up new keys.");
+      setLangfuseSk("");
+    } catch (err) {
+      alert("Failed to save telemetry keys.");
+      console.error(err);
+    } finally {
+      setIsSavingKeys(false);
+    }
+  };
 
   const handleNavigation = (path: string) => {
     if (path === "/chat") 
@@ -154,6 +197,16 @@ export default function MainMenu() {
                    onClick={() => handleNavigation("/request-access")}
                  />
                )}
+
+               {/* NEW: Langfuse Observability Card */}
+               {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
+                 <ActionCard 
+                   title="Observability Dashboard"
+                   desc="Open Langfuse to manage your projects and view traces."
+                   icon={<Activity className="h-6 w-6 text-blue-500" />}
+                   onClick={() => window.open("http://localhost:3000", "_blank")}
+                 />
+               )}
             </div>
           </div>
           
@@ -180,6 +233,64 @@ export default function MainMenu() {
                  <Button variant="outline" className="w-full mt-2">
                    <Settings className="mr-2 h-4 w-4" /> Edit Profile
                  </Button>
+
+                 {/* NEW: Telemetry Configuration Button */}
+                 {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
+                   <Button 
+                     variant="secondary" 
+                     className="w-full mt-2" 
+                     onClick={() => setShowLangfuseConfig(!showLangfuseConfig)}
+                   >
+                     <Activity className="mr-2 h-4 w-4" /> Configure Telemetry
+                   </Button>
+                 )}
+
+                 {/* NEW: Telemetry Input Form */}
+                 {showLangfuseConfig && (
+                   <div className="mt-4 p-4 border rounded-md space-y-3 bg-muted/30 animate-in fade-in slide-in-from-top-2">
+                     <p className="text-xs text-muted-foreground mb-2">
+                       Paste your Langfuse project keys to enable tracing.
+                     </p>
+                     <div className="space-y-1">
+                       <Label className="text-xs" htmlFor="pk">Public Key</Label>
+                       <Input 
+                         id="pk" 
+                         className="h-8 text-xs bg-background" 
+                         placeholder="pk-lf-..." 
+                         value={langfusePk} 
+                         onChange={(e) => setLangfusePk(e.target.value)} 
+                       />
+                     </div>
+                     <div className="space-y-1">
+                       <Label className="text-xs" htmlFor="sk">Secret Key</Label>
+                       <Input 
+                         id="sk" 
+                         className="h-8 text-xs bg-background" 
+                         type="password" 
+                         placeholder={
+                           user?.langfuse_secret_key_set
+                             ? "Saved — enter new secret to replace"
+                             : "sk-lf-..."
+                         }
+                         value={langfuseSk} 
+                         onChange={(e) => setLangfuseSk(e.target.value)} 
+                       />
+                       {user?.langfuse_secret_key_set && (
+                         <p className="text-[10px] text-muted-foreground">
+                           A secret key is stored. Leave blank to keep it, or paste a new one.
+                         </p>
+                       )}
+                     </div>
+                     <Button 
+                       size="sm" 
+                       className="w-full text-xs" 
+                       disabled={isSavingKeys || !canSaveLangfuse} 
+                       onClick={handleSaveLangfuse}
+                     >
+                       {isSavingKeys ? "Saving..." : "Save Keys"}
+                     </Button>
+                   </div>
+                 )}
               </CardContent>
             </Card>
 

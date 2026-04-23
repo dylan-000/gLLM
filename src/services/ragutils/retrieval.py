@@ -3,13 +3,13 @@ from src.services.ragutils.vector_db import get_vector_db
 db = get_vector_db()
 
 
-def get_context(query_text, user_id, n_results=5):
+def get_context(query_text, user_id, thread_id, n_results=5):
     """
     Retrieves chunks and formats them into a string for the LLM.
     Returns: (formatted_context_string, list_of_sources)
     """
 
-    results = db.search(query_text, user_id, n_results)
+    results = db.search(query_text, user_id, thread_id, n_results)
     context_string = ""
     sources = []
 

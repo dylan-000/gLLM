@@ -7,7 +7,7 @@ from src.services.ragutils.vector_db import get_vector_db
 db = get_vector_db()
 
 
-def ingest_file(file_path, file_id, file_name, file_type, user_id):
+def ingest_file(file_path, file_id, file_name, file_type, user_id, thread_id):
 
     print(file_path, file_name, file_type)
     docs = []
@@ -47,6 +47,7 @@ def ingest_file(file_path, file_id, file_name, file_type, user_id):
         chunk_id = f"{file_id}_{i}"
         meta = {
             "user_id": user_id,
+            "thread_id": thread_id,
             "source_file_id": file_id,
             "file_name": file_name,
             "file_type": file_type,

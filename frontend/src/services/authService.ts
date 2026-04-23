@@ -20,12 +20,14 @@ export interface SignupRequest {
 
 export interface User {
   identifier: string
-  id: number
+  id: string
   role: string
   firstname: string
   lastname: string
   email: string
   createdAt: string
+  langfuse_public_key?: string | null
+  langfuse_secret_key_set?: boolean
 }
 
 /**
@@ -76,4 +78,10 @@ export async function getCurrentUser(): Promise<User> {
  */
 export async function logout(): Promise<void> {
   await apiClient.post("/auth/logout", {})
+}
+
+
+export async function updateLangfuseConfig(keys: { langfuse_public_key: string, langfuse_secret_key: string }) {
+  const response = await apiClient.put("/auth/me/langfuse", keys);
+  return response.data;
 }
