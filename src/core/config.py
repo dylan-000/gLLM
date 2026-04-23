@@ -1,4 +1,6 @@
 from pathlib import Path
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,3 +23,5 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     HASH_ALGORITHM: str
     CHAINLIT_AUTH_SECRET: str
+    # Langfuse UI / API (self-hosted default; Langfuse Cloud uses https://cloud.langfuse.com)
+    LANGFUSE_HOST: str = Field(default="http://localhost:3000")

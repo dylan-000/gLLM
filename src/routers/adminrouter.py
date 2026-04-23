@@ -4,8 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.db.database import engine, get_db
-from src.models.user import UserResponse, UserUpdate
-from src.services.adminservice import get_users, get_user_by_id
+from src.models.user import UserResponse, UserUpdate, user_response_from_orm
+from src.services.adminservice import (
+    delete_user as delete_user_svc,
+    get_users,
+    get_user_by_id,
+    update_user as update_user_svc,
+)
 
 AdminRouter = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -23,7 +28,7 @@ async def get_user_by_id(userId: UUID, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    return user
+    return user_response_from_orm(user)
 
 
 @AdminRouter.put("/users/{userId}", response_model=UserResponse)
@@ -49,10 +54,14 @@ async def update_user(
             )
 
     try:
-        updated_user = update_user(
+        updated_user = update_user_svc(
             userId, user_update.model_dump(exclude_unset=True), db
         )
-        return updated_user
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        return user_response_from_orm(updated_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)

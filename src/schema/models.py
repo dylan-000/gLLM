@@ -73,6 +73,9 @@ class User(Base):
     lastname = Column(String, nullable=True)
     email = Column(String, nullable=True)
 
+    langfuse_public_key = Column(String, nullable=True)
+    langfuse_secret_key = Column(String, nullable=True)
+
     threads = relationship("Thread", back_populates="user")
 
     __table_args__ = (

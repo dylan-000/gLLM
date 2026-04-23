@@ -4,12 +4,14 @@ import { getCurrentUser } from "@/services/authService"
 
 export interface AuthUser {
   identifier: string
-  id: number
+  id: string
   role: string
   firstname: string
   lastname: string
   email: string
   createdAt: string
+  langfuse_public_key?: string | null
+  langfuse_secret_key_set?: boolean
 }
 
 interface AuthContextType {

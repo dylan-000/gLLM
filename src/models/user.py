@@ -32,9 +32,28 @@ class UserResponse(BaseModel):
     lastname: Optional[str]
     email: Optional[str]
     createdAt: datetime
+    langfuse_public_key: Optional[str] = None
+    langfuse_secret_key_set: bool = False
 
     class Config:
         from_attributes = True
+
+
+def user_response_from_orm(u: Any) -> UserResponse:
+    """Build API user DTO including Langfuse fields (not stored on cl.User in Chainlit)."""
+    sk = getattr(u, "langfuse_secret_key", None)
+    role = u.role.value if hasattr(u.role, "value") else str(u.role)
+    return UserResponse(
+        id=u.id,
+        identifier=u.identifier,
+        role=role,
+        firstname=u.firstname,
+        lastname=u.lastname,
+        email=u.email,
+        createdAt=u.createdAt,
+        langfuse_public_key=getattr(u, "langfuse_public_key", None),
+        langfuse_secret_key_set=bool(sk and str(sk).strip()),
+    )
 
 
 class UserUpdate(BaseModel):
@@ -44,3 +63,11 @@ class UserUpdate(BaseModel):
     lastname: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
+
+
+class LangfuseConfigUpdate(BaseModel):
+    """
+    DTO for updating a user's Langfuse API credentials.
+    """
+    langfuse_public_key: Optional[str] = None
+    langfuse_secret_key: Optional[str] = None
