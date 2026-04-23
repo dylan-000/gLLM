@@ -69,5 +69,6 @@ class LangfuseConfigUpdate(BaseModel):
     """
     DTO for updating a user's Langfuse API credentials.
     """
+
     langfuse_public_key: Optional[str] = None
     langfuse_secret_key: Optional[str] = None

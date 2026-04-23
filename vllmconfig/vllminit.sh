@@ -8,22 +8,29 @@ PORT=8000
 # if you have any other processes running on GPU and GPU_MEMORY_UTILIZATION * TOTAL_VRAM != AVAILABLE_VRAM, then the container will not run.
 # meaning, check your GPU processes with btop or nvidia-smi to see if you have something that is consuming VRAM that vLLM is trying to access
 GPU_MEMORY_UTILIZATION=0.9 
-LOG_FILE="./vllm-logs/vllm.log"
-dtype=auto # This can effect whether a model runs or not. auto will ensure that it runs. If VRAM is low, check the supported lowest dtype (e.g. float16).
+LOG_FILE="/home/prod_gllm/gLLM/vllmconfig/vllm-logs/vllm.log"
+dtype=auto # This can effect whether a model runs or not. auto will ensure that it runs. If VRAM is low, check the supported lowest dtype (e.g. float16). Consider bfloat16
 
 # Run the docker container with our configuration
 sudo docker run --runtime nvidia --gpus all \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   --env "HUGGING_FACE_HUB_TOKEN=$HF_TOKEN" \
+  --env "VLLM_ALLOW_RUNTIME_LORA_UPDATING=True" \
   -p $PORT:8000 \
   --ipc=host \
   vllm/vllm-openai:latest \
-  --model $MODEL \
+  "$MODEL" \
   --host 0.0.0.0 \
   --trust-remote-code \
-  --served-model-name $MODEL \
-  --swap-space 0 \
+  --served-model-name "gLLM Default" \
   --dtype $dtype \
   --gpu-memory-utilization $GPU_MEMORY_UTILIZATION \
-  --max-model-len 32768\
+  --max-model-len 32768 \
+  --enable-lora \
+  --max-lora-rank 64 \
+  --max-loras 8 \
+  --max-cpu-loras 10 \
+  --enable-auto-tool-choice \
+  --tool-call-parser hermes \
+  --enable-prefix-caching \
   2>&1 | tee "$LOG_FILE"

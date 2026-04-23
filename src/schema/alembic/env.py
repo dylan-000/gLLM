@@ -7,10 +7,11 @@ from sqlalchemy import engine_from_config, pool
 # for 'autogenerate' support
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parents[3]))  # don't touch this
 
 from src.core.config import Settings
-
+from src.schema.models import Base
 
 db_url = Settings().DATABASE_URL
 config = context.config
@@ -25,7 +26,6 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-from src.schema.models import Base
 
 target_metadata = [Base.metadata]
 

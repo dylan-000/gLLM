@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageSquare, Settings, Shield, Terminal, LogOut, Menu, LayoutDashboard, Moon, Sun, Activity } from "lucide-react";
@@ -14,7 +15,7 @@ export default function MainMenu() {
   const navigate = useNavigate();
   const { user, refetch } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { theme, toggleTheme } = useTheme(); 
+  const { theme, toggleTheme } = useTheme();
 
   const [showLangfuseConfig, setShowLangfuseConfig] = useState(false);
   const [langfusePk, setLangfusePk] = useState("");
@@ -58,9 +59,9 @@ export default function MainMenu() {
   };
 
   const handleNavigation = (path: string) => {
-    if (path === "/chat") 
+    if (path === "/chat")
       window.location.replace("http://localhost:8001/gllm/");
-    else 
+    else
       navigate(path);
   };
 
@@ -76,9 +77,9 @@ export default function MainMenu() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300 font-sans">
-      
+
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`${sidebarOpen ? 'w-64' : 'w-20'} 
         bg-card border-r border-border transition-all duration-300 flex flex-col fixed h-full z-20 shadow-sm`}
       >
@@ -86,8 +87,8 @@ export default function MainMenu() {
         <div className="h-16 flex items-center px-4 border-b border-border justify-between">
           {sidebarOpen ? (
             <div className="flex items-center gap-2 font-bold text-xl text-primary tracking-tight">
-               <img src="/gLLM_ICON.png" alt="Logo" className="h-8 w-8 object-contain" />
-               gLLM
+              <img src="/gLLM_ICON.png" alt="Logo" className="h-8 w-8 object-contain" />
+              gLLM
             </div>
           ) : (
             <img src="/gLLM_ICON.png" alt="Logo" className="h-8 w-8 mx-auto" />
@@ -101,34 +102,34 @@ export default function MainMenu() {
         <nav className="flex-1 p-3 space-y-1 mt-2">
           <SidebarLink icon={<LayoutDashboard />} label="Dashboard" active />
           <SidebarLink icon={<MessageSquare />} label="Chat Agent" onClick={() => handleNavigation("/chat")} />
-          
+
           {user?.role === UserRole.ADMIN && (
-             <SidebarLink icon={<Shield />} label="Admin Console" onClick={() => handleNavigation("/admin")} />
+            <SidebarLink icon={<Shield />} label="Admin Console" onClick={() => handleNavigation("/admin")} />
           )}
-          
+
           {(user?.role === UserRole.ADMIN || user?.role === UserRole.FINETUNER) && (
-             <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
+            <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
           )}
         </nav>
 
         {/* User Footer */}
         <div className="p-4 border-t border-border">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`w-full justify-start ${!sidebarOpen && 'px-2 justify-center'}`}
             onClick={toggleTheme}
           >
             {theme === 'dark' ? (
-                <Sun className="h-4 w-4" />
+              <Sun className="h-4 w-4" />
             ) : (
-                <Moon className="h-4 w-4" />
+              <Moon className="h-4 w-4" />
             )}
             {sidebarOpen && <span className="ml-2">
-                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </span>}
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${!sidebarOpen && 'px-2 justify-center'}`}
             onClick={handleLogout}
           >
@@ -140,22 +141,22 @@ export default function MainMenu() {
 
       {/* Main Content */}
       <main className={`flex-1 p-6 md:p-8 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ml-0`}>
-        
+
         {/* Page Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">gLLM Dashboard</h1>
           </div>
           <div className="flex items-center gap-3">
-             <span className="text-xs font-mono bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full uppercase">
-               System: Online
-             </span>
-             <span className="text-xs font-mono bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
-               vLLM: Active
-             </span>
-             <span className="text-xs font-mono bg-tertiary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
-               UnSloth: Inactive
-             </span>
+            <span className="text-xs font-mono bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full uppercase">
+              System: Online
+            </span>
+            <span className="text-xs font-mono bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
+              vLLM: Active
+            </span>
+            <span className="text-xs font-mono bg-tertiary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
+              UnSloth: Inactive
+            </span>
           </div>
         </div>
 
@@ -164,141 +165,141 @@ export default function MainMenu() {
             {/* Main Applications */}
             <h2 className="text-lg font-semibold tracking-tight">Applications</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <ActionCard 
-                 title="Launch gLLM Agent"
-                 desc="Start a new chat session with the domain adaptable model."
-                 icon={<MessageSquare className="h-6 w-6 text-primary" />}
-                 onClick={() => handleNavigation("/chat")}
-               />
+              <ActionCard
+                title="Launch gLLM Agent"
+                desc="Start a new chat session with the domain adaptable model."
+                icon={<MessageSquare className="h-6 w-6 text-primary" />}
+                onClick={() => handleNavigation("/chat")}
+              />
 
-               {user?.role === UserRole.ADMIN && (
-                 <ActionCard 
-                   title="System Administration"
-                   desc="Manage docker containers, user roles, and logs."
-                   icon={<Shield className="h-6 w-6 text-chart-1" />}
-                   onClick={() => handleNavigation("/admin")}
-                 />
-               )}
+              {user?.role === UserRole.ADMIN && (
+                <ActionCard
+                  title="System Administration"
+                  desc="Manage docker containers, user roles, and logs."
+                  icon={<Shield className="h-6 w-6 text-chart-1" />}
+                  onClick={() => handleNavigation("/admin")}
+                />
+              )}
 
-               {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
-                 <ActionCard 
-                   title="Fine-Tune Models"
-                   desc="Access Jupyter interface for model training."
-                   icon={<Terminal className="h-6 w-6 text-secondary" />}
-                   onClick={() => handleNavigation("https://unsloth.ai")}
-                 />
-               )}
-               
-               {user?.role === UserRole.REGUSER && (
-                 <ActionCard 
-                   title="Request Access"
-                   desc="Submit request for fine-tuning privileges."
-                   icon={<Settings className="h-6 w-6 text-muted-foreground" />}
-                   onClick={() => handleNavigation("/request-access")}
-                 />
-               )}
+              {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
+                <ActionCard
+                  title="Fine-Tune Models"
+                  desc="Access Jupyter interface for model training."
+                  icon={<Terminal className="h-6 w-6 text-secondary" />}
+                  onClick={() => handleNavigation("https://unsloth.ai")}
+                />
+              )}
 
-               {/* NEW: Langfuse Observability Card */}
-               {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
-                 <ActionCard 
-                   title="Observability Dashboard"
-                   desc="Open Langfuse to manage your projects and view traces."
-                   icon={<Activity className="h-6 w-6 text-blue-500" />}
-                   onClick={() => window.open("http://localhost:3000", "_blank")}
-                 />
-               )}
+              {user?.role === UserRole.REGUSER && (
+                <ActionCard
+                  title="Request Access"
+                  desc="Submit request for fine-tuning privileges."
+                  icon={<Settings className="h-6 w-6 text-muted-foreground" />}
+                  onClick={() => handleNavigation("/request-access")}
+                />
+              )}
+
+              {/* NEW: Langfuse Observability Card */}
+              {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
+                <ActionCard
+                  title="Observability Dashboard"
+                  desc="Open Langfuse to manage your projects and view traces."
+                  icon={<Activity className="h-6 w-6 text-blue-500" />}
+                  onClick={() => window.open("http://localhost:3000", "_blank")}
+                />
+              )}
             </div>
           </div>
-          
+
           {/* Profile */}
           <div className="space-y-6">
             <h2 className="text-lg font-semibold tracking-tight">Your Profile</h2>
             <Card className="border-border shadow-sm">
               <CardHeader className="pb-3 border-b border-border/50">
-                 <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                      {user?.firstname?.[0]}{user?.lastname?.[0]}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{user?.firstname} {user?.lastname}</CardTitle>
-                      <CardDescription>{user?.role}</CardDescription>
-                    </div>
-                 </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                    {user?.firstname?.[0]}{user?.lastname?.[0]}
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{user?.firstname} {user?.lastname}</CardTitle>
+                    <CardDescription>{user?.role}</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                 <ProfileField label="Username" value={user?.identifier || "N/A"} />
-                 <ProfileField label="Email" value={user?.email || "N/A"} />
-                 <ProfileField label="Access Level" value={user?.role?.toUpperCase() || "N/A"} />
-                 
-                 <Button variant="outline" className="w-full mt-2">
-                   <Settings className="mr-2 h-4 w-4" /> Edit Profile
-                 </Button>
+                <ProfileField label="Username" value={user?.identifier || "N/A"} />
+                <ProfileField label="Email" value={user?.email || "N/A"} />
+                <ProfileField label="Access Level" value={user?.role?.toUpperCase() || "N/A"} />
 
-                 {/* NEW: Telemetry Configuration Button */}
-                 {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
-                   <Button 
-                     variant="secondary" 
-                     className="w-full mt-2" 
-                     onClick={() => setShowLangfuseConfig(!showLangfuseConfig)}
-                   >
-                     <Activity className="mr-2 h-4 w-4" /> Configure Telemetry
-                   </Button>
-                 )}
+                <Button variant="outline" className="w-full mt-2">
+                  <Settings className="mr-2 h-4 w-4" /> Edit Profile
+                </Button>
 
-                 {/* NEW: Telemetry Input Form */}
-                 {showLangfuseConfig && (
-                   <div className="mt-4 p-4 border rounded-md space-y-3 bg-muted/30 animate-in fade-in slide-in-from-top-2">
-                     <p className="text-xs text-muted-foreground mb-2">
-                       Paste your Langfuse project keys to enable tracing.
-                     </p>
-                     <div className="space-y-1">
-                       <Label className="text-xs" htmlFor="pk">Public Key</Label>
-                       <Input 
-                         id="pk" 
-                         className="h-8 text-xs bg-background" 
-                         placeholder="pk-lf-..." 
-                         value={langfusePk} 
-                         onChange={(e) => setLangfusePk(e.target.value)} 
-                       />
-                     </div>
-                     <div className="space-y-1">
-                       <Label className="text-xs" htmlFor="sk">Secret Key</Label>
-                       <Input 
-                         id="sk" 
-                         className="h-8 text-xs bg-background" 
-                         type="password" 
-                         placeholder={
-                           user?.langfuse_secret_key_set
-                             ? "Saved — enter new secret to replace"
-                             : "sk-lf-..."
-                         }
-                         value={langfuseSk} 
-                         onChange={(e) => setLangfuseSk(e.target.value)} 
-                       />
-                       {user?.langfuse_secret_key_set && (
-                         <p className="text-[10px] text-muted-foreground">
-                           A secret key is stored. Leave blank to keep it, or paste a new one.
-                         </p>
-                       )}
-                     </div>
-                     <Button 
-                       size="sm" 
-                       className="w-full text-xs" 
-                       disabled={isSavingKeys || !canSaveLangfuse} 
-                       onClick={handleSaveLangfuse}
-                     >
-                       {isSavingKeys ? "Saving..." : "Save Keys"}
-                     </Button>
-                   </div>
-                 )}
+                {/* NEW: Telemetry Configuration Button */}
+                {(user?.role === UserRole.FINETUNER || user?.role === UserRole.ADMIN) && (
+                  <Button
+                    variant="secondary"
+                    className="w-full mt-2"
+                    onClick={() => setShowLangfuseConfig(!showLangfuseConfig)}
+                  >
+                    <Activity className="mr-2 h-4 w-4" /> Configure Telemetry
+                  </Button>
+                )}
+
+                {/* NEW: Telemetry Input Form */}
+                {showLangfuseConfig && (
+                  <div className="mt-4 p-4 border rounded-md space-y-3 bg-muted/30 animate-in fade-in slide-in-from-top-2">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Paste your Langfuse project keys to enable tracing.
+                    </p>
+                    <div className="space-y-1">
+                      <Label className="text-xs" htmlFor="pk">Public Key</Label>
+                      <Input
+                        id="pk"
+                        className="h-8 text-xs bg-background"
+                        placeholder="pk-lf-..."
+                        value={langfusePk}
+                        onChange={(e) => setLangfusePk(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs" htmlFor="sk">Secret Key</Label>
+                      <Input
+                        id="sk"
+                        className="h-8 text-xs bg-background"
+                        type="password"
+                        placeholder={
+                          user?.langfuse_secret_key_set
+                            ? "Saved — enter new secret to replace"
+                            : "sk-lf-..."
+                        }
+                        value={langfuseSk}
+                        onChange={(e) => setLangfuseSk(e.target.value)}
+                      />
+                      {user?.langfuse_secret_key_set && (
+                        <p className="text-[10px] text-muted-foreground">
+                          A secret key is stored. Leave blank to keep it, or paste a new one.
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full text-xs"
+                      disabled={isSavingKeys || !canSaveLangfuse}
+                      onClick={handleSaveLangfuse}
+                    >
+                      {isSavingKeys ? "Saving..." : "Save Keys"}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Placeholder for Recent Activity */}
             <Card className="bg-muted/30 border-dashed">
-               <CardContent className="p-6 text-center text-muted-foreground text-sm">
-                  No recent system notifications.
-               </CardContent>
+              <CardContent className="p-6 text-center text-muted-foreground text-sm">
+                No recent system notifications.
+              </CardContent>
             </Card>
           </div>
 
@@ -310,7 +311,7 @@ export default function MainMenu() {
 
 function SidebarLink({ icon, label, onClick, active }: any) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className={`flex items-center w-full p-2.5 rounded-lg transition-colors duration-200 group
         ${active ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
@@ -324,7 +325,7 @@ function SidebarLink({ icon, label, onClick, active }: any) {
 
 function ActionCard({ title, desc, icon, onClick }: any) {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/50 cursor-pointer"
     >
