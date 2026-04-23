@@ -1,8 +1,6 @@
 import json
 import os
 import time
-import nest_asyncio
-nest_asyncio.apply()
 
 from chainlit.utils import mount_chainlit
 from fastapi import Depends, FastAPI

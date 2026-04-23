@@ -8,9 +8,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-BASE_MODEL = os.getenv("MODEL", "Qwen/Qwen2.5-7B-Instruct")
-SERVED_MODEL_NAME = os.getenv("SERVED_MODEL_NAME", BASE_MODEL)
-
 import chainlit as cl
 from chainlit.types import ThreadDict
 from openai import AsyncOpenAI
@@ -29,11 +26,16 @@ from src.services.ragutils import ingestion
 from src.services.ragutils import retrieval
 from datetime import datetime, timezone
 
+from huggingface_hub import snapshot_download
+from safetensors.torch import load_file, save_file
+import asyncio
+import shutil
 
 client = AsyncOpenAI(base_url="http://localhost:8000/v1", api_key="empty")
 cl.instrument_openai()
 SYSTEM_PROMPT = get_system()
-settings = {"model": "Qwen/Qwen2.5-7B-Instruct", "temperature": 0.7}
+settings = {"model": "gLLM Default", "temperature": 0.7}
+BASE_MODEL = settings["model"]
 
 
 @cl.on_chat_resume
@@ -165,6 +167,8 @@ async def chat_profile(current_user: Optional[cl.User] = None):
     return profiles
 
 
+lora_download_locks = {}
+
 @cl.on_chat_start
 async def on_start():
     chat_profile = cl.user_session.get("chat_profile")
@@ -175,23 +179,90 @@ async def on_start():
     )
     
     if chat_profile and chat_profile != BASE_MODEL:
-        print(f"Loading LoRA adapter: {chat_profile}")
-        try:
-            async with httpx.AsyncClient() as c:
-                res = await c.post(
-                    "http://localhost:8000/v1/load_lora_adapter",
-                    json={
-                        "lora_name": chat_profile,
-                        "lora_path": chat_profile
-                    },
-                    timeout=30.0
-                )
-                if res.status_code != 200:
-                    print(f"Error loading LoRA: {res.text}")
-                else:
-                    print(f"Successfully loaded LoRA: {chat_profile}")
-        except Exception as e:
-            print(f"Failed to trigger LoRA load: {e}")
+        # Create a lock for this specific model if it doesn't exist yet
+        if chat_profile not in lora_download_locks:
+            lora_download_locks[chat_profile] = asyncio.Lock()
+        
+        async with lora_download_locks[chat_profile]:
+            print(f"Loading LoRA adapter: {chat_profile}")
+            try:
+                def filter_safetensors(path):
+                    try:
+                        tensors = load_file(path)
+                        unsupported_layers = ["embed_tokens", "lm_head"]
+                        filtered_tensors = {}
+                        for key, tensor in tensors.items():
+                            if "lora" in key and not any(bad_layer in key for bad_layer in unsupported_layers):
+                                filtered_tensors[key] = tensor
+                                
+                        # If we successfully removed the bad layers, save the file back
+                        if len(filtered_tensors) < len(tensors):
+                            save_file(filtered_tensors, path)
+                            print(f"Successfully stripped unsupported layers from {os.path.basename(path)}")
+                            
+                    except Exception as e:
+                        print(f"Error filtering safetensors {path}: {e}")
+
+                def patch_lora():
+                    local_dir = snapshot_download(repo_id=chat_profile)
+                    patched_dir = os.path.expanduser(f"~/.cache/huggingface/patched_loras/{chat_profile.replace('/', '_')}")
+                    os.makedirs(patched_dir, exist_ok=True)
+                    for item in os.listdir(local_dir):
+                        s = os.path.join(local_dir, item)
+                        d = os.path.join(patched_dir, item)
+                        if os.path.isdir(s) and not os.path.exists(d):
+                            shutil.copytree(s, d)
+                        elif not os.path.isdir(s) and not os.path.exists(d):
+                            shutil.copy2(s, d)
+                    
+                    config_path = os.path.join(patched_dir, "adapter_config.json")
+                    if os.path.exists(config_path):
+                        with open(config_path, "r") as f:
+                            config = json.load(f)
+                        
+                        # Nullify modules_to_save
+                        if config.get("modules_to_save") is not None:
+                            config["modules_to_save"] = None
+                            
+                        # Filter target_modules to only include what vLLM supports
+                        if isinstance(config.get("target_modules"), list):
+                            supported_modules = {'k_proj', 'up_proj', 'down_proj', 'gate_proj', 'q_proj', 'v_proj', 'o_proj'}
+                            config["target_modules"] = [m for m in config["target_modules"] if m in supported_modules]
+
+                        with open(config_path, "w") as f:
+                            json.dump(config, f, indent=2)
+
+                    for item in os.listdir(patched_dir):
+                        if item.endswith(".safetensors"):
+                            safetensors_path = os.path.join(patched_dir, item)
+                            try:
+                                filter_safetensors(safetensors_path)
+                            except Exception as e:
+                                print(f"Error filtering safetensors {item}: {e}")
+
+                    return f"/root/.cache/huggingface/patched_loras/{chat_profile.replace('/', '_')}"
+
+                lora_path_container = await asyncio.to_thread(patch_lora)
+
+                async with httpx.AsyncClient() as c:
+                    res = await c.post(
+                        "http://localhost:8000/v1/load_lora_adapter",
+                        json={
+                            "lora_name": chat_profile,
+                            "lora_path": lora_path_container
+                        },
+                        timeout=30.0
+                    )
+                    
+                    # Check for successful load OR if it's already loaded
+                    if res.status_code == 200:
+                        print(f"Successfully loaded LoRA: {chat_profile}")
+                    elif res.status_code == 400 and "already been loaded" in res.text:
+                        print(f"LoRA {chat_profile} is already active in vLLM.")
+                    else:
+                        print(f"Error loading LoRA: {res.text}")
+            except Exception as e:
+                print(f"Failed to trigger LoRA load: {e}")
 
 
 @cl.on_message
