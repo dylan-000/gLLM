@@ -3,12 +3,7 @@ import os
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-# If MOCK_CONTAINERS is set, use the lightweight alpine setup
-if os.getenv("MOCK_CONTAINERS", "false").lower() == "true":
-    COMPOSE_FILENAME = "docker-compose.mock.yaml"
-else:
-    COMPOSE_FILENAME = "docker-compose.models.yaml"
-
+COMPOSE_FILENAME = "docker-compose.models.yaml"
 DOCKER_COMPOSE_FILE = os.path.join(ROOT_DIR, COMPOSE_FILENAME)
 
 def get_image_for_service(service_name: str) -> str:

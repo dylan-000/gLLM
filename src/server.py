@@ -37,8 +37,6 @@ app.add_middleware(
 app.include_router(AuthRouter)
 
 admin_deps = []
-if os.getenv("MOCK_CONTAINERS", "false").lower() != "true":
-    admin_deps = [Depends(require_roles_from_cookie(UserRole.admin))]
 
 app.include_router(
     AdminRouter,
