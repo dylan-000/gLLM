@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from src.core.core import oauth2_scheme
 from src.routers.adminrouter import AdminRouter
 from src.routers.authrouter import AuthRouter
+from src.routers.finetunerouter import FineTuneRouter
 from src.services.authservice import require_roles_from_cookie
 from src.schema.models import UserRole
 
@@ -42,6 +43,7 @@ app.include_router(
     AdminRouter,
     dependencies=admin_deps,
 )
+app.include_router(FineTuneRouter)
 mount_chainlit(app=app, target="./chainlit-app.py", path="/gllm")
 
 if os.path.isdir("../frontend/dist"):

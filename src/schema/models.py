@@ -44,6 +44,12 @@ class UserRole(enum.Enum):
     unauthorized = "unauthorized"
 
 
+class FineTuneRequestStatus(enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    denied = "denied"
+
+
 class User(Base):
     __tablename__ = "User"
 
@@ -76,7 +82,10 @@ class User(Base):
     langfuse_public_key = Column(String, nullable=True)
     langfuse_secret_key = Column(String, nullable=True)
 
+    finetuner_expires_at = Column(DateTime(timezone=True), nullable=True)
+
     threads = relationship("Thread", back_populates="user")
+    finetune_requests = relationship("FineTuneRequest", back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_User_identifier", "identifier"),
@@ -245,3 +254,28 @@ class Feedback(Base):
         Index("ix_Feedback_value", "value"),
         Index("ix_Feedback_name_value", "name", "value"),
     )
+
+
+class FineTuneRequest(Base):
+    __tablename__ = "FineTuneRequest"
+
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    createdAt = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updatedAt = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    userId = Column(UUID(as_uuid=True), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    domain = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    necessity = Column(String, nullable=False)
+    status = Column(SAEnum(FineTuneRequestStatus, name="FineTuneRequestStatus"), nullable=False, default=FineTuneRequestStatus.pending)
+
+    user = relationship("User", back_populates="finetune_requests")

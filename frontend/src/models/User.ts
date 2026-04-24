@@ -1,6 +1,6 @@
 export enum UserRole {
   ADMIN = 'admin',
-  FINETUNER = 'finetuner',
+  FINETUNER = 'fine_tuner',
   REGUSER = 'normal',
   RETIREDUSER = 'unauthorized',
 }

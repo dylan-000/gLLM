@@ -4,6 +4,7 @@ import { ArrowLeft, Users, Database, X, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { adminService, type ContainerStatus } from "../services/adminService";
+import { finetuneService, type FineTuneRequestResponse } from "../services/finetuneService";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [showAllUsers, setShowAllUsers] = useState(false);
+  const [finetuneRequests, setFinetuneRequests] = useState<FineTuneRequestResponse[]>([]);
 
   const fetchUsers = async () => {
     try {
@@ -30,12 +32,23 @@ export default function AdminPanel() {
     }
   };
 
+  const fetchFinetuneRequests = async () => {
+    try {
+      const data = await finetuneService.getAllRequests();
+      setFinetuneRequests(data);
+    } catch (e) {
+      console.error("Failed to fetch finetune requests", e);
+    }
+  };
+
   useEffect(() => {
     fetchStatus();
     fetchUsers();
+    fetchFinetuneRequests();
     const intervalId = setInterval(() => {
       fetchStatus();
       fetchUsers();
+      fetchFinetuneRequests();
     }, 10000);
     return () => clearInterval(intervalId);
   }, []);
@@ -82,6 +95,19 @@ export default function AdminPanel() {
     } catch (e) {
       console.error(e);
       alert("Failed to delete user");
+    }
+    setLoadingAction(null);
+  };
+
+  const handleUpdateRequestStatus = async (requestId: string, status: string) => {
+    setLoadingAction(`request-${requestId}`);
+    try {
+      await finetuneService.updateRequestStatus(requestId, status);
+      await fetchFinetuneRequests();
+      await fetchUsers(); // Because their role might have changed
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update request");
     }
     setLoadingAction(null);
   };
@@ -216,6 +242,68 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Fine-Tuning Requests Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold tracking-tight">Fine-Tuning Requests</h2>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending & Recent Requests</CardTitle>
+              <CardDescription>Review requests to access Unsloth Studio.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {finetuneRequests.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No requests found.</p>
+              ) : (
+                finetuneRequests.map((req) => (
+                  <div key={req.id} className="border border-border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold text-sm">
+                        User: <span className="text-primary">{req.user_identifier}</span>
+                      </div>
+                      <div className={`text-xs font-bold uppercase px-2 py-1 rounded-full ${
+                        req.status === 'approved' ? 'bg-green-500/10 text-green-500' :
+                        req.status === 'denied' ? 'bg-red-500/10 text-red-500' :
+                        'bg-yellow-500/10 text-yellow-500'
+                      }`}>
+                        {req.status}
+                      </div>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <p><span className="font-medium text-muted-foreground">Domain:</span> {req.domain}</p>
+                      <p><span className="font-medium text-muted-foreground">Description:</span> {req.description}</p>
+                      <p><span className="font-medium text-muted-foreground">Necessity:</span> {req.necessity}</p>
+                      <p className="text-xs text-muted-foreground mt-2">Submitted on {new Date(req.createdAt).toLocaleString()}</p>
+                    </div>
+                    {req.status === 'pending' && (
+                      <div className="flex gap-3 pt-2">
+                        <Button 
+                          size="sm" 
+                          variant="default" 
+                          disabled={loadingAction === `request-${req.id}`}
+                          onClick={() => handleUpdateRequestStatus(req.id, 'approved')}
+                        >
+                          Approve (24h)
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                          disabled={loadingAction === `request-${req.id}`}
+                          onClick={() => handleUpdateRequestStatus(req.id, 'denied')}
+                        >
+                          Deny
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </div>
 
       </div>

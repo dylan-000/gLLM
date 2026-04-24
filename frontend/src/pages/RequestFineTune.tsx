@@ -5,20 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { finetuneService } from "../services/finetuneService";
 
 export default function RequestFinetune() {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [domain, setDomain] = useState("");
+  const [description, setDescription] = useState("");
+  const [necessity, setNecessity] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Will implement endpoint later
-    setTimeout(() => {
-      setLoading(false);
+    setErrorMsg("");
+    try {
+      await finetuneService.submitRequest({ domain, description, necessity });
       setSubmitted(true);
-    }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.detail || "An error occurred while submitting.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -71,10 +80,17 @@ export default function RequestFinetune() {
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {errorMsg && (
+                  <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm font-medium">
+                    {errorMsg}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="domain">Target Domain / Topic</Label>
                   <Input 
                     id="domain" 
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
                     placeholder="e.g. MATLAB, Python, Perovskite Solar Cells" 
                     required 
                     className="bg-background"
@@ -85,6 +101,8 @@ export default function RequestFinetune() {
                   <Label htmlFor="description">What would you like to fine-tune the model on?</Label>
                   <textarea 
                     id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Describe your dataset and the specific behaviors you want the model to learn..."
                     required
@@ -95,6 +113,8 @@ export default function RequestFinetune() {
                   <Label htmlFor="necessity">Why is fine-tuning necessary for your cause?</Label>
                   <textarea 
                     id="necessity"
+                    value={necessity}
+                    onChange={(e) => setNecessity(e.target.value)}
                     className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Explain why standard RAG or base models are insufficient for your requirements..."
                     required
