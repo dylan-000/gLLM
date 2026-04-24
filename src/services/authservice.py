@@ -212,3 +212,19 @@ def require_roles(*allowed_roles: UserRole):
         return current_user
 
     return role_checker
+
+
+def require_roles_from_cookie(*allowed_roles: UserRole):
+    """
+    Factory that returns a dependency enforcing role-based access using cookies.
+    """
+
+    def role_checker(current_user: User = Depends(get_current_active_user_from_cookie)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {[r.value for r in allowed_roles]}",
+            )
+        return current_user
+
+    return role_checker

@@ -12,7 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from src.core.core import oauth2_scheme
 from src.routers.adminrouter import AdminRouter
 from src.routers.authrouter import AuthRouter
-from src.services.authservice import require_roles
+from src.services.authservice import require_roles_from_cookie
 from src.schema.models import UserRole
 
 
@@ -38,7 +38,7 @@ app.include_router(AuthRouter)
 
 admin_deps = []
 if os.getenv("MOCK_CONTAINERS", "false").lower() != "true":
-    admin_deps = [Depends(oauth2_scheme), Depends(require_roles(UserRole.admin))]
+    admin_deps = [Depends(require_roles_from_cookie(UserRole.admin))]
 
 app.include_router(
     AdminRouter,

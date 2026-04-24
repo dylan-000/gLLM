@@ -19,15 +19,20 @@ services:
       - "${PORT:-8000}:8000"
     ipc: host
     command: >
-      --enable-lora
-      --model $MODEL
+      ${MODEL:-Qwen/Qwen2.5-7B-Instruct}
       --host 0.0.0.0
       --trust-remote-code
-      --served-model-name $SERVED_MODEL_NAME
-      --swap-space 0
-      --dtype $dtype
-      --gpu-memory-utilization $GPU_MEMORY_UTILIZATION
+      --served-model-name "gLLM Default"
+      --dtype ${dtype:-auto}
+      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.9}
       --max-model-len 32768
+      --enable-lora
+      --max-lora-rank 64
+      --max-loras 8
+      --max-cpu-loras 10
+      --enable-auto-tool-choice
+      --tool-call-parser hermes
+      --enable-prefix-caching
 
   unsloth:
     image: unsloth/unsloth:latest

@@ -61,8 +61,17 @@ def setup_session_client(user: Optional[cl.User]):
         pk, sk = _langfuse_keys_for_identifier(identifier)
 
     host = Settings().LANGFUSE_HOST
-
+    
+    is_reachable = False
     if pk and sk:
+        try:
+            # Check if Langfuse host is up to prevent OpenTelemetry connection spam
+            httpx.get(host, timeout=1.0)
+            is_reachable = True
+        except httpx.RequestError:
+            print(f"Langfuse host {host} is unreachable. Tracing disabled.")
+
+    if pk and sk and is_reachable:
         Langfuse(public_key=pk, secret_key=sk, host=host, tracing_enabled=True)
         cl.user_session.set("is_langfuse_enabled", True)
         cl.user_session.set("langfuse_public_key", pk)
