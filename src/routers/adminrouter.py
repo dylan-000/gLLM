@@ -16,9 +16,12 @@ from src.services.containerservice import get_container_status, start_container,
 AdminRouter = APIRouter(prefix="/admin", tags=["admin"])
 
 
-@AdminRouter.get("/users/")
+from typing import List
+
+@AdminRouter.get("/users/", response_model=List[UserResponse])
 async def read_users(db: Session = Depends(get_db)):
-    return get_users(db=db)
+    users = get_users(db=db)
+    return [user_response_from_orm(user) for user in users]
 
 
 @AdminRouter.get("/users/{userId}", response_model=UserResponse)

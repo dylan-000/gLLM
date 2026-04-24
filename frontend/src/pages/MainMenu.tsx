@@ -10,6 +10,7 @@ import { UserRole } from "../models/User";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { logout, updateLangfuseConfig } from "@/services/authService";
+import { adminService, type ContainerStatus } from "../services/adminService";
 
 export default function MainMenu() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function MainMenu() {
   const [langfusePk, setLangfusePk] = useState("");
   const [langfuseSk, setLangfuseSk] = useState("");
   const [isSavingKeys, setIsSavingKeys] = useState(false);
+  const [containerStatus, setContainerStatus] = useState<ContainerStatus | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -61,6 +63,8 @@ export default function MainMenu() {
   const handleNavigation = (path: string) => {
     if (path === "/chat")
       window.location.replace("http://localhost:8001/gllm/");
+    else if (path.startsWith("http"))
+      window.location.href = path;
     else
       navigate(path);
   };
@@ -74,6 +78,24 @@ export default function MainMenu() {
       navigate("/login");
     }
   };
+
+  const fetchStatus = async () => {
+    try {
+      const status = await adminService.getContainerStatus();
+      setContainerStatus(status);
+    } catch (e) {
+      console.error("Failed to fetch container status", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+    const intervalId = setInterval(fetchStatus, 10000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const isVllmActive = containerStatus?.vllm?.status === 'up';
+  const isUnslothActive = containerStatus?.unsloth?.status === 'up';
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300 font-sans">
@@ -107,8 +129,16 @@ export default function MainMenu() {
             <SidebarLink icon={<Shield />} label="Admin Console" onClick={() => handleNavigation("/admin")} />
           )}
 
+          {user?.role === UserRole.REGUSER && (
+            <SidebarLink icon={<Settings />} label="Request Access" onClick={() => handleNavigation("/request-access")} />
+          )}
+
           {(user?.role === UserRole.ADMIN || user?.role === UserRole.FINETUNER) && (
-            <SidebarLink icon={<Terminal />} label="Unsloth Studio" onClick={() => handleNavigation("https://unsloth.ai")} />
+            <SidebarLink icon={<Activity />} label="Observability Dashboard" onClick={() => handleNavigation("http://localhost:3000")} />
+          )}
+
+          {(user?.role === UserRole.ADMIN || user?.role === UserRole.FINETUNER) && (
+            <SidebarLink icon={<Terminal />} label="Fine-Tune Models" onClick={() => handleNavigation("http://localhost:8002")} />
           )}
         </nav>
 
@@ -148,14 +178,11 @@ export default function MainMenu() {
             <h1 className="text-3xl font-bold tracking-tight">gLLM Dashboard</h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full uppercase">
-              System: Online
+            <span className={`text-xs font-mono border px-3 py-1 rounded-full uppercase ${isVllmActive ? 'bg-secondary/10 text-secondary border-secondary/20' : 'bg-muted/50 text-muted-foreground border-border'}`}>
+              vLLM: {isVllmActive ? 'Active' : 'Offline'}
             </span>
-            <span className="text-xs font-mono bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
-              vLLM: Active
-            </span>
-            <span className="text-xs font-mono bg-tertiary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full uppercase">
-              UnSloth: Inactive
+            <span className={`text-xs font-mono border px-3 py-1 rounded-full uppercase ${isUnslothActive ? 'bg-secondary/10 text-secondary border-secondary/20' : 'bg-muted/50 text-muted-foreground border-border'}`}>
+              UnSloth: {isUnslothActive ? 'Active' : 'Offline'}
             </span>
           </div>
         </div>
@@ -186,7 +213,7 @@ export default function MainMenu() {
                   title="Fine-Tune Models"
                   desc="Access Jupyter interface for model training."
                   icon={<Terminal className="h-6 w-6 text-secondary" />}
-                  onClick={() => handleNavigation("https://unsloth.ai")}
+                  onClick={() => handleNavigation("http://localhost:8002")}
                 />
               )}
 

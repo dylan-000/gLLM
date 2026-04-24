@@ -8,7 +8,17 @@ import { adminService, type ContainerStatus } from "../services/adminService";
 export default function AdminPanel() {
   const navigate = useNavigate();
   const [containerStatus, setContainerStatus] = useState<ContainerStatus | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await adminService.getUsers();
+      setUsers(data);
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    }
+  };
 
   const fetchStatus = async () => {
     try {
@@ -21,7 +31,11 @@ export default function AdminPanel() {
 
   useEffect(() => {
     fetchStatus();
-    const intervalId = setInterval(fetchStatus, 10000);
+    fetchUsers();
+    const intervalId = setInterval(() => {
+      fetchStatus();
+      fetchUsers();
+    }, 10000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -41,6 +55,17 @@ export default function AdminPanel() {
     try {
       await adminService.stopContainer(service);
       await fetchStatus();
+    } catch (e) {
+      console.error(e);
+    }
+    setLoadingAction(null);
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setLoadingAction(`role-${userId}`);
+    try {
+      await adminService.updateUserRole(userId, newRole);
+      await fetchUsers();
     } catch (e) {
       console.error(e);
     }
@@ -73,12 +98,12 @@ export default function AdminPanel() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <AdminStatCard
             title="Total Users"
-            value="3"
+            value={users.length.toString()}
             icon={<Users className="h-5 w-5 text-blue-500" />}
           />
           <AdminStatCard
-            title="Current Active Containers"
-            value="vLLM"
+            title="Current Active Containers on GPU"
+            value={containerStatus?.vllm?.status === 'up' ? 'vLLM' : containerStatus?.unsloth?.status === 'up' ? 'UnSloth' : 'None'}
             icon={<Database className="h-5 w-5 text-green-500" />}
           />
         </div>
@@ -92,22 +117,31 @@ export default function AdminPanel() {
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Pending Approvals</CardTitle>
-                <CardDescription>New users requesting access.</CardDescription>
+                <CardTitle>User Roles</CardTitle>
+                <CardDescription>Manage roles for all registered users.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
+                {users.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">U{i}</div>
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold uppercase">{u.identifier.substring(0, 2)}</div>
                       <div>
-                        <p className="text-sm font-medium">User_{i} Request</p>
-                        <p className="text-xs text-muted-foreground">user{i}@example.com</p>
+                        <p className="text-sm font-medium">{u.identifier}</p>
+                        <p className="text-xs text-muted-foreground">{u.email || 'No email'}</p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="default" className="h-7 text-xs">Approve</Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:bg-destructive/10">Deny</Button>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={u.role}
+                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                        disabled={loadingAction === `role-${u.id}`}
+                        className="text-xs bg-background border border-border rounded p-1"
+                      >
+                        <option value="unauthorized">Unauthorized</option>
+                        <option value="normal">RegUser</option>
+                        <option value="fine_tuner">Fine Tuner</option>
+                        <option value="admin">Admin</option>
+                      </select>
                     </div>
                   </div>
                 ))}
