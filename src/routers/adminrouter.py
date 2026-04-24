@@ -8,7 +8,7 @@ from src.models.user import UserResponse, UserUpdate, user_response_from_orm
 from src.services.adminservice import (
     delete_user as delete_user_svc,
     get_users,
-    get_user_by_id,
+    get_user_by_id as get_user_by_id_svc,
     update_user as update_user_svc,
 )
 from src.services.containerservice import get_container_status, start_container, stop_container
@@ -27,7 +27,7 @@ async def read_users(db: Session = Depends(get_db)):
 @AdminRouter.get("/users/{userId}", response_model=UserResponse)
 async def get_user_by_id(userId: UUID, db: Session = Depends(get_db)):
     """Get a user by their ID."""
-    user = get_user_by_id(userId, db)
+    user = get_user_by_id_svc(userId, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -40,7 +40,7 @@ async def update_user(
     userId: UUID, user_update: UserUpdate, db: Session = Depends(get_db)
 ):
     """Update a user's fields."""
-    user = get_user_by_id(userId, db)
+    user = get_user_by_id_svc(userId, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -75,13 +75,13 @@ async def update_user(
 @AdminRouter.delete("/users/{userId}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(userId: UUID, db: Session = Depends(get_db)):
     """Delete a user from the database."""
-    user = get_user_by_id(userId, db)
+    user = get_user_by_id_svc(userId, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    delete_user(userId, db)
+    delete_user_svc(userId, db)
     return None
 
 

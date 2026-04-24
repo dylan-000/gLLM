@@ -38,5 +38,10 @@ export const adminService = {
     });
     if (!res.ok) throw new Error('Failed to update user role');
     return res.json();
+  },
+
+  deleteUser: async (userId: string): Promise<void> => {
+    const res = await fetch(`/admin/users/${userId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete user');
   }
 };

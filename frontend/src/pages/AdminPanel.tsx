@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Database } from "lucide-react";
+import { ArrowLeft, Users, Database, X, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { adminService, type ContainerStatus } from "../services/adminService";
@@ -10,6 +10,7 @@ export default function AdminPanel() {
   const [containerStatus, setContainerStatus] = useState<ContainerStatus | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [showAllUsers, setShowAllUsers] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -72,6 +73,19 @@ export default function AdminPanel() {
     setLoadingAction(null);
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to remove this user?")) return;
+    setLoadingAction(`delete-${userId}`);
+    try {
+      await adminService.deleteUser(userId);
+      await fetchUsers();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete user");
+    }
+    setLoadingAction(null);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
 
@@ -113,15 +127,20 @@ export default function AdminPanel() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold tracking-tight">User Management</h2>
-              <Button variant="outline" size="sm">View All</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowAllUsers(true)}>
+                View All
+              </Button>
             </div>
             <Card>
               <CardHeader>
                 <CardTitle>User Roles</CardTitle>
-                <CardDescription>Manage roles for all registered users.</CardDescription>
+                <CardDescription>
+                  Manage roles for registered users. 
+                  {users.length > 5 && ` Showing 5 of ${users.length} users.`}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {users.map((u) => (
+                {users.slice(0, 5).map((u) => (
                   <div key={u.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold uppercase">{u.identifier.substring(0, 2)}</div>
@@ -142,6 +161,15 @@ export default function AdminPanel() {
                         <option value="fine_tuner">Fine Tuner</option>
                         <option value="admin">Admin</option>
                       </select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteUser(u.id)}
+                        disabled={loadingAction === `delete-${u.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -191,6 +219,60 @@ export default function AdminPanel() {
         </div>
 
       </div>
+
+      {/* View All Users Modal */}
+      {showAllUsers && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
+              <div>
+                <CardTitle>All Users</CardTitle>
+                <CardDescription>Manage all {users.length} registered users.</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowAllUsers(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
+              {users.map((u) => (
+                <div key={u.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold uppercase">{u.identifier.substring(0, 2)}</div>
+                    <div>
+                      <p className="text-sm font-medium">{u.identifier}</p>
+                      <p className="text-xs text-muted-foreground">{u.email || 'No email'} • Joined: {new Date(u.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-center">
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                      disabled={loadingAction === `role-${u.id}`}
+                      className="text-sm bg-background border border-border rounded p-2"
+                    >
+                      <option value="unauthorized">Unauthorized</option>
+                      <option value="normal">RegUser</option>
+                      <option value="fine_tuner">Fine Tuner</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-9 px-3 flex gap-2"
+                      onClick={() => handleDeleteUser(u.id)}
+                      disabled={loadingAction === `delete-${u.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -85,3 +85,16 @@ export async function updateLangfuseConfig(keys: { langfuse_public_key: any, lan
   const response = await apiClient.put("/auth/me/langfuse", keys);
   return response.data;
 }
+
+export interface ProfileUpdateRequest {
+  identifier?: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  password?: string;
+}
+
+export async function updateProfile(data: ProfileUpdateRequest): Promise<User> {
+  const response = await apiClient.put<User>("/auth/me/profile", data);
+  return response.data;
+}

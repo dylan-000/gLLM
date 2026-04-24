@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.schema.models import User
 from src.db.database import engine, get_db
 from src.models.auth import Token
-from src.models.user import LangfuseConfigUpdate, UserCreate, UserResponse
+from src.models.user import LangfuseConfigUpdate, UserCreate, UserResponse, UserProfileUpdate
 from src.models.user import user_response_from_orm
 from src.services.adminservice import update_user
 from src.services.authservice import (
@@ -17,6 +17,7 @@ from src.services.authservice import (
     signup_user,
     get_current_active_user,
     get_current_active_user_from_cookie,
+    get_password_hash,
 )
 from src.core.config import Settings
 
@@ -152,3 +153,24 @@ async def update_langfuse_config(
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return user_response_from_orm(updated_user)
+
+
+@AuthRouter.put("/me/profile", response_model=UserResponse)
+async def update_user_profile(
+    profile_update: UserProfileUpdate,
+    current_user: User = Depends(get_current_active_user_from_cookie),
+    db: Session = Depends(get_db),
+):
+    update_data = profile_update.model_dump(exclude_unset=True)
+    
+    if "password" in update_data and update_data["password"]:
+        update_data["password"] = get_password_hash(update_data["password"])
+        
+    try:
+        updated_user = update_user(current_user.id, update_data, db)
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user_response_from_orm(updated_user)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=str(e))
+

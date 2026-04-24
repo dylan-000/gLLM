@@ -5,6 +5,7 @@ import MainMenu from "./pages/MainMenu"
 import AdminPanel from "./pages/AdminPanel"
 import RetiredAccess from "./pages/RetiredAccess"
 import RequestFinetune from "./pages/RequestFineTune"
+import ProfileEdit from "./pages/ProfileEdit"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { UserRole } from "./models/User"
 
@@ -112,6 +113,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <MainMenu />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfileEdit />
           </ProtectedRoute>
         }
       />

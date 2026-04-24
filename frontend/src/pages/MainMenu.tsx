@@ -258,7 +258,7 @@ export default function MainMenu() {
                 <ProfileField label="Email" value={user?.email || "N/A"} />
                 <ProfileField label="Access Level" value={user?.role?.toUpperCase() || "N/A"} />
 
-                <Button variant="outline" className="w-full mt-2">
+                <Button variant="outline" className="w-full mt-2" onClick={() => navigate("/profile")}>
                   <Settings className="mr-2 h-4 w-4" /> Edit Profile
                 </Button>
 
@@ -319,13 +319,6 @@ export default function MainMenu() {
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Placeholder for Recent Activity */}
-            <Card className="bg-muted/30 border-dashed">
-              <CardContent className="p-6 text-center text-muted-foreground text-sm">
-                No recent system notifications.
               </CardContent>
             </Card>
           </div>

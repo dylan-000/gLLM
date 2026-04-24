@@ -65,6 +65,14 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
 
 
+class UserProfileUpdate(BaseModel):
+    identifier: Optional[str] = None
+    password: Optional[str] = None
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+
 class LangfuseConfigUpdate(BaseModel):
     """
     DTO for updating a user's Langfuse API credentials.
