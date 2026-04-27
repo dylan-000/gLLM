@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import type { ReactNode } from "react"
-import { getCurrentUser } from "@/services/authService"
+import { getCurrentUser, logout as apiLogout } from "@/services/authService"
 
 export interface AuthUser {
   identifier: string
@@ -19,7 +19,8 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
-  refetch: () => Promise<void>
+  refetch: () => Promise<AuthUser | null>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,15 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const refetch = async () => {
+  const refetch = async (): Promise<AuthUser | null> => {
     try {
       setIsLoading(true)
       setError(null)
       const userData = await getCurrentUser()
       setUser(userData)
+      return userData
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch user")
       setUser(null)
+      return null
     } finally {
       setIsLoading(false)
     }
@@ -48,12 +51,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetch()
   }, [])
 
+  const logout = async () => {
+    // Clear user state immediately so route guards react before navigation
+    setUser(null)
+    setError(null)
+    try {
+      await apiLogout()
+    } catch {
+      // Cookie is already gone client-side; ignore API errors
+    }
+  }
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
     isLoading,
     error,
     refetch,
+    logout,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

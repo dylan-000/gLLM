@@ -77,6 +77,46 @@ function AdminRoute() {
   return <AdminPanel />
 }
 
+// Retired-user-only route: unauthenticated → /login, wrong role → /main-menu
+function RetiredRoute() {
+  const { isAuthenticated, isLoading, user } = useAuth()
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (user?.role !== UserRole.RETIREDUSER) {
+    return <Navigate to="/main-menu" replace />
+  }
+
+  return <RetiredAccess />
+}
+
+// Request-access route: only authenticated REGUSER accounts
+// Admins and finetuners already have elevated access → /main-menu
+// Unauthenticated → /login
+function RequestAccessRoute() {
+  const { isAuthenticated, isLoading, user } = useAuth()
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (user?.role !== UserRole.REGUSER) {
+    return <Navigate to="/main-menu" replace />
+  }
+
+  return <RequestFinetune />
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -104,8 +144,8 @@ function AppRoutes() {
         }
       />
 
-      {/* Retired access - public for now */}
-      <Route path="/retired-access" element={<RetiredAccess />} />
+      {/* Retired access - authenticated RETIREDUSER only */}
+      <Route path="/retired-access" element={<RetiredRoute />} />
 
       {/* Protected routes */}
       <Route
@@ -126,8 +166,8 @@ function AppRoutes() {
         }
       />
 
-      {/* Request access - allow unauthenticated */}
-      <Route path="/request-access" element={<RequestFinetune />} />
+      {/* Request access - authenticated REGUSER only */}
+      <Route path="/request-access" element={<RequestAccessRoute />} />
 
       {/* Admin-only route */}
       <Route path="/admin" element={<AdminRoute />} />

@@ -9,12 +9,12 @@ import { Label } from "../components/ui/label";
 import { UserRole } from "../models/User";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
-import { logout, updateLangfuseConfig } from "@/services/authService";
+import { updateLangfuseConfig } from "@/services/authService";
 import { adminService, type ContainerStatus } from "../services/adminService";
 
 export default function MainMenu() {
   const navigate = useNavigate();
-  const { user, refetch } = useAuth();
+  const { user, refetch, logout: authLogout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { theme, toggleTheme } = useTheme();
 
@@ -60,22 +60,35 @@ export default function MainMenu() {
     }
   };
 
+  // Routes that are separate UIs — open in a new tab
+  const NEW_TAB_PATHS = ["/chat", "/unsloth"]
+  const NEW_TAB_PREFIXES = ["http://", "https://"]
+
   const handleNavigation = (path: string) => {
-    if (path === "/chat")
-      window.location.replace("http://localhost:8001/gllm/");
-    else if (path.startsWith("http"))
-      window.location.href = path;
-    else
-      navigate(path);
+    const isExternal = NEW_TAB_PREFIXES.some((p) => path.startsWith(p))
+    const isNewTabRoute = NEW_TAB_PATHS.includes(path)
+
+    if (isExternal || isNewTabRoute) {
+      // Resolve internal new-tab paths to their actual URLs
+      const url =
+        path === "/chat"
+          ? `${window.location.origin}/gllm/`
+          : path === "/unsloth"
+          ? `${window.location.origin}/unsloth`
+          : path
+      window.open(url, "_blank", "noopener,noreferrer")
+    } else {
+      navigate(path)
+    }
   };
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await authLogout(); // clears AuthContext user state AND calls API
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   };
 
@@ -109,11 +122,11 @@ export default function MainMenu() {
         <div className="h-16 flex items-center px-4 border-b border-border justify-between">
           {sidebarOpen ? (
             <div className="flex items-center gap-2 font-bold text-xl text-primary tracking-tight">
-              <img src="/gLLM_ICON.png" alt="Logo" className="h-8 w-8 object-contain" />
+              <img src="/static/gLLM_ICON.png" alt="Logo" className="h-8 w-8 object-contain" />
               gLLM
             </div>
           ) : (
-            <img src="/gLLM_ICON.png" alt="Logo" className="h-8 w-8 mx-auto" />
+            <img src="/static/gLLM_ICON.png" alt="Logo" className="h-8 w-8 mx-auto" />
           )}
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="hidden md:flex">
             <Menu className="h-4 w-4" />

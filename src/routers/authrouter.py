@@ -17,6 +17,7 @@ from src.services.authservice import (
     signup_user,
     get_current_active_user,
     get_current_active_user_from_cookie,
+    get_current_user_from_cookie,
     get_password_hash,
 )
 from src.core.config import Settings
@@ -114,7 +115,7 @@ async def logout():
 
 @AuthRouter.get("/me")
 async def read_users_me(
-    current_user: Annotated[User, Depends(get_current_active_user_from_cookie)],
+    current_user: Annotated[User, Depends(get_current_user_from_cookie)],
 ) -> UserResponse:
     """
     Get current authenticated user information.
@@ -133,7 +134,9 @@ async def read_users_me(
       "createdAt": datetime
     }
 
-    Returns: 401 Unauthorized if cookie missing or invalid
+    Returns: 401 Unauthorized if cookie missing or token invalid.
+    Note: Returns the user for ALL roles including unauthorized (retired).
+          Role-based access control is enforced on data/action endpoints.
     """
     return user_response_from_orm(current_user)
 

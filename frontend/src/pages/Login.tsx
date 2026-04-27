@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/ui/Logo"
 import { login } from "@/services/authService"
 import { useAuth } from "@/contexts/AuthContext"
+import { UserRole } from "@/models/User"
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
@@ -33,11 +34,15 @@ export default function Login() {
       }
 
       await login({ username, password })
-      // Cookie is automatically set by the server
-      // Refetch user data to update auth context
-      await refetch()
-      // Navigate to main menu on success
-      navigate("/main-menu")
+      // Cookie is automatically set by the server.
+      // Refetch to get the user object (works for all roles including retired).
+      const userData = await refetch()
+      // Route based on role: retired users see their status page, others go to the dashboard.
+      if (userData?.role === UserRole.RETIREDUSER) {
+        navigate("/retired-access", { replace: true })
+      } else {
+        navigate("/main-menu", { replace: true })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
       setIsLoading(false)
